@@ -62,6 +62,25 @@ Instalar o drive do Banco de Dados MySQL
 'npm install mysql2 --save'
 ---
 
+Criação do banco de dados
+---
+
+'create database plannerrotas character set utf8mb4 collate utf8_unicode_ci
+---
+
+Criar, com migrations, a tabeçala que será usada no banco de dados:
+
+npx typeorm migration:create src/migrations/<nome-da-migrations>
+---
+
+npx typeorm migration:create src/migrations/CreateUsersTable
+---
+
+Executar as migrations criadas:
+---
+
+npx typeorm migration:run -d dist/data-source.js
+
 Planner de Rotas:
 
 Criar um algoritmo para o planejamento de rotas;
