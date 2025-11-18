@@ -25,8 +25,9 @@ export class Passageiro implements Pessoa, EnderecoResidencia {
         this.numeroResidencia = numeroResidencia
     }
 
-
-
+    getName() {
+        return this.nome
+    }
 
 
 }

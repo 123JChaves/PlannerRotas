@@ -1,20 +1,25 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Pessoa } from './Pessoa';
 
 @Entity()
-export class User {
+export class User implements Pessoa {
   @PrimaryGeneratedColumn()
   id: number;
 
   @Column()
-  name: string;
+  nome: string;
 
   @Column()
   email: string;
 
-  constructor(id: number, name: string, email: string) {
+  constructor(id: number, nome: string, email: string) {
     this.id = id;
-    this.name = name;
+    this.nome = nome;
     this.email = email;
   }
 
+  getName() {
+        return this.nome
+    }
+    
 }

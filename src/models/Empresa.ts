@@ -28,4 +28,8 @@ export class Empresa implements EnderecoEmpresa, Pessoa {
         return this.id;
     }
 
+    getName() {
+        return this.nome
+    }
+
 }

@@ -20,5 +20,8 @@ export class Motorista implements Pessoa {
         this.carro = carro;
     }
 
+    getName() {
+        return this.nome
+    }
 
 }
