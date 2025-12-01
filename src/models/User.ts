@@ -1,7 +1,7 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 import { Pessoa } from './Pessoa';
 
-@Entity()
+@Entity('user')
 export class User implements Pessoa {
   @PrimaryGeneratedColumn()
   id: number;
@@ -9,7 +9,7 @@ export class User implements Pessoa {
   @Column()
   nome: string;
 
-  @Column()
+  @Column({unique: true})
   email: string;
 
   @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP" })

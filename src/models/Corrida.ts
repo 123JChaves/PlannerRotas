@@ -1,21 +1,21 @@
-import { Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { Empresa } from "./Empresa";
 import { Motorista } from "./Motorista";
 import { Passageiro } from "./Passageiro";
 
-@Entity()
+@Entity('corrida')
 export class Corrida {
     
     @PrimaryGeneratedColumn()
     private id: number;
 
-    @OneToMany(() => Empresa, empresa => empresa.getIdEmpresa())
+    @ManyToOne(() => Empresa, empresa => empresa.getIdEmpresa())
     private empresa: Empresa;
 
-    @OneToMany(() => Motorista, motorista => motorista.id)
+    @ManyToOne(() => Motorista, motorista => motorista.id)
     private motorista: Motorista;
 
-    @OneToMany(() => Passageiro, passageiro => passageiro.id)
+    @ManyToOne(() => Passageiro, passageiro => passageiro.id)
     private passageiro: Passageiro;
 
     constructor(id: number, empresa: Empresa, motorista: Motorista, passageiro: Passageiro) {

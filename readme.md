@@ -80,6 +80,8 @@ Executar as migrations criadas:
 ---
 
 npx typeorm migration:run -d dist/data-source.js
+---
+A API é executada neste endereço: http://localhost:8080
 
 Planner de Rotas:
 

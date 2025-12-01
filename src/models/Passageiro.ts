@@ -2,7 +2,7 @@ import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 import { EnderecoResidencia } from './EnderecoResidencia';
 import { Pessoa } from "./Pessoa";
 
-@Entity()
+@Entity('passageiro')
 export class Passageiro implements Pessoa, EnderecoResidencia {
 
     @PrimaryGeneratedColumn()
