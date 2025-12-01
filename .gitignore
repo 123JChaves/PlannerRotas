@@ -31,6 +31,8 @@ Thumbs.db
 #OS-specific files
 .DS_Store
 *.lock
+.env.lock 
+.ormconfig.json
 
 # Other
 coverage/
