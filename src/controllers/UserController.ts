@@ -43,7 +43,6 @@ router.get("/users/:id", async (req: Request, res: Response) => {
         }
 });
 
-
 //Rota para cadastro de usuário:
 
 router.post("/users", async (req: Request, res: Response) => {
@@ -77,6 +76,8 @@ router.post("/users", async (req: Request, res: Response) => {
     });
     }
 });
+
+//Rota para a edição do usuário:
 
 router.put("/users/:id", async (req: Request, res: Response) => {
 
@@ -125,5 +126,42 @@ router.put("/users/:id", async (req: Request, res: Response) => {
         }
 
 } )
+
+//Rota para a deletar o usuário:
+
+router.delete("/users/:id", async(req: Request, res: Response) => {
+
+    try {
+
+        const {id} = req.params;
+
+        const data = req.body;
+
+        const userRepository = AppDataSource.getRepository(User);
+
+        const user = await userRepository.findOneBy({id: parseInt(id)});
+
+        if(!user) {
+            return res.status(404).json({
+                message: "Usuário não encontrado!"
+            });
+        }
+
+        await userRepository.remove(user);
+
+        res.status(200).json({
+        message: "Usuário deletado com sucesso!",
+        user: user,
+            });
+
+
+        
+    } catch (error) {
+            return res.status(500).json({
+            message: "Erro ao deletar o usuário!"
+            });
+        }
+
+});
 
 export default router;
