@@ -12,7 +12,9 @@ router.get("/users", async (req: Request, res: Response) => {
         const userRepository = AppDataSource.getRepository(User);
         const users = await userRepository.find();
         res.status(200).json(users);
+
         return;
+        
     } catch (error) {
         res.status(500).json({
         message: "Erro ao listar os usuários!"
