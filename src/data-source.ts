@@ -1,6 +1,13 @@
 import "reflect-metadata";
 import { DataSource } from 'typeorm';
 import { User } from "./models/User";
+import { Pais } from "./models/Pais";
+import { Estado } from "./models/Estado";
+import { Cidade } from "./models/Cidade";
+import { Bairro } from "./models/Bairro";
+import { Logradouro } from "./models/Logradouro";
+import { Motorista } from "./models/Motorista";
+import { Carro } from "./models/Carro";
 
 export const AppDataSource = new DataSource({
     type: "mysql",
@@ -11,7 +18,8 @@ export const AppDataSource = new DataSource({
     database: "plannerrotas",
     synchronize: true,
     logging: true,
-    entities: [User],
+    entities: [User, Pais, Estado, Cidade, Bairro, Logradouro, Motorista, Carro],
+
     subscribers: [],
     migrations: [__dirname+"/migrations/*.js"],
 });

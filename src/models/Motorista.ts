@@ -1,27 +1,25 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 import { Carro } from "./Carro";
-import { Pessoa } from "./Pessoa";
 
-@Entity('motorista')
-export class Motorista implements Pessoa {
+@Entity("motorista")
+export class Motorista {
 
     @PrimaryGeneratedColumn()
-    id: number;
+    private id: number;
 
     @Column()
-    nome: string;
+    private nome: string;
 
-    @Column()
-    carro: Carro;
+    @OneToMany(() => Carro, carro => carro.getMotorista)
+    carros: Carro[];
 
-    constructor(id: number, nome: string, carro: Carro) {
+    constructor(id: number, nome: string, carros: Carro[]) {
         this.id = id;
         this.nome = nome;
-        this.carro = carro;
+        this.carros = carros;
     }
 
-    getName() {
-        return this.nome
+    public getCarros(): Carro[] {
+        return this.carros;
     }
-
 }

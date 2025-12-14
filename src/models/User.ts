@@ -1,8 +1,8 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
-import { Pessoa } from './Pessoa';
+import { Column, Entity, PrimaryGeneratedColumn, BeforeInsert, BeforeUpdate } from 'typeorm';
+import * as bcrypt from 'bcrypt';
 
 @Entity('user')
-export class User implements Pessoa {
+export class User {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -12,23 +12,38 @@ export class User implements Pessoa {
   @Column({unique: true})
   email: string;
 
+  @Column()
+  senha: string;
+
   @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP" })
-  createDate: Date
+  createDate: Date;
 
   @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP",
   onUpdate: "CURRENT_TIMESTAMP" })
-  updateDate: Date
+  updateDate: Date;
 
-  constructor(id: number, nome: string, email: string, createDate: Date, updateDate: Date) {
+  constructor(id: number, nome: string, email: string, senha: string, createDate: Date, updateDate: Date) {
     this.id = id;
     this.nome = nome;
     this.email = email;
+    this.senha = senha;
     this.createDate = createDate;
     this.updateDate = updateDate
   }
 
-  getName() {
+  getNome() {
         return this.nome
-    }
+  };
 
+  @BeforeInsert()
+  async hashSenhaInsert() {
+    this.senha = await bcrypt.hash(this.senha, 10);
+  };
+
+  @BeforeUpdate()
+  async hashSenhaUpdate() {
+    if(this.senha) {
+      this.senha = await bcrypt.hash(this.senha, 10);
+    };
+  };
 }
