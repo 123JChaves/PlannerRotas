@@ -8,6 +8,8 @@ import { Bairro } from "./models/Bairro";
 import { Logradouro } from "./models/Logradouro";
 import { Motorista } from "./models/Motorista";
 import { Carro } from "./models/Carro";
+import { Empresa } from "./models/Empresa";
+import { Funcionario } from "./models/Funcionario";
 
 export const AppDataSource = new DataSource({
     type: "mysql",
@@ -18,7 +20,7 @@ export const AppDataSource = new DataSource({
     database: "plannerrotas",
     synchronize: true,
     logging: true,
-    entities: [User, Pais, Estado, Cidade, Bairro, Logradouro, Motorista, Carro],
+    entities: [User, Pais, Estado, Cidade, Bairro, Logradouro, Motorista, Carro, Empresa, Funcionario],
 
     subscribers: [],
     migrations: [__dirname+"/migrations/*.js"],
