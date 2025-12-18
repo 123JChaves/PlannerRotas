@@ -21,12 +21,21 @@ export class Empresa {
     @OneToMany(() => Corrida, corrida => corrida.getEmpresa)
     corridas: Corrida[];
 
-    constructor(id: number, nome: string, funcionarios: Funcionario[], logradouro: Logradouro, corridas: Corrida[]) {
+    @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP" })
+    createDate: Date;
+
+    @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP",
+    onUpdate: "CURRENT_TIMESTAMP" })
+    updateDate: Date;
+
+    constructor(id: number, nome: string, funcionarios: Funcionario[], logradouro: Logradouro, corridas: Corrida[], createDate: Date, updateDate: Date) {
         this.id = id;
         this.nome = nome;
         this.funcionarios = funcionarios;
         this.logradouro = logradouro;
         this.corridas = corridas;
+        this.createDate = createDate;
+        this.updateDate = updateDate;
     }
 
     public getId() {

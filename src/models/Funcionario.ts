@@ -22,12 +22,21 @@ export class Funcionario {
     @JoinColumn({ name: "corridaId" })
     corrida: Corrida;
 
-    constructor(id: number, nome: string, empresa: Empresa, logradouro: Logradouro, corrida: Corrida) {
+    @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP" })
+    createDate: Date;
+    
+    @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP",
+    onUpdate: "CURRENT_TIMESTAMP" })
+    updateDate: Date;
+
+    constructor(id: number, nome: string, empresa: Empresa, logradouro: Logradouro, corrida: Corrida, createDate: Date, updateDate: Date) {
         this.id = id;
         this.nome = nome;
         this.empresa = empresa;
         this.logradouro = logradouro;
         this.corrida = corrida;
+        this.createDate = createDate;
+        this.updateDate = updateDate;
     }
 
     public getEmpresa(): Empresa {

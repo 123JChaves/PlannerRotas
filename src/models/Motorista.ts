@@ -17,11 +17,20 @@ export class Motorista {
     @OneToOne(() => Corrida, (corrida) => corrida.getMotorista)
     corrida: Corrida;
 
-    constructor(id: number, nome: string, carros: Carro[], corrida: Corrida) {
+    @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP" })
+    createDate: Date;
+
+    @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP",
+    onUpdate: "CURRENT_TIMESTAMP" })
+    updateDate: Date;
+
+    constructor(id: number, nome: string, carros: Carro[], corrida: Corrida, createDate: Date, updateDate: Date) {
         this.id = id;
         this.nome = nome;
         this.carros = carros;
         this.corrida = corrida;
+        this.createDate = createDate;
+        this.updateDate = updateDate;
     }
 
     public getCarros(): Carro[] {
