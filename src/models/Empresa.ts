@@ -7,19 +7,19 @@ import { Corrida } from "./Corrida";
 export class Empresa {
 
     @PrimaryGeneratedColumn()
-    private id: number;
+    id: number;
 
     @Column()
-    private nome: string;
+    nome: string;
 
-    @OneToMany(() => Funcionario, funcionario => funcionario.getEmpresa)
-    private funcionarios: Funcionario[];
+    @OneToMany(() => Funcionario, funcionario => funcionario.empresa)
+    funcionarios?: Funcionario[];
 
-    @ManyToOne(() => Logradouro, logradouro => logradouro.getEmpresas)
-    private logradouro: Logradouro;
+    @ManyToOne(() => Logradouro, logradouro => logradouro.empresas, {cascade: true})
+    logradouro: Logradouro;
 
-    @OneToMany(() => Corrida, corrida => corrida.getEmpresa)
-    corridas: Corrida[];
+    @OneToMany(() => Corrida, corrida => corrida.empresa)
+    corridas?: Corrida[];
 
     @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP" })
     createDate: Date;
@@ -28,29 +28,25 @@ export class Empresa {
     onUpdate: "CURRENT_TIMESTAMP" })
     updateDate: Date;
 
-    constructor(id: number, nome: string, funcionarios: Funcionario[], logradouro: Logradouro, corridas: Corrida[], createDate: Date, updateDate: Date) {
-        this.id = id;
-        this.nome = nome;
-        this.funcionarios = funcionarios;
-        this.logradouro = logradouro;
+    constructor(id?: number,
+                nome?: string,
+                funcionarios?: Funcionario[],
+                logradouro?: Logradouro,
+                corridas?: Corrida [],
+                createDate?: Date,
+                updateDate?: Date)
+    {
+        this.id = id!;
+        this.nome = nome!;
+        if (funcionarios) {
+            this.funcionarios = funcionarios;
+        }
+        this.logradouro = logradouro!;
+        if (corridas) {
         this.corridas = corridas;
-        this.createDate = createDate;
-        this.updateDate = updateDate;
+        }
+        this.createDate = createDate!;
+        this.updateDate = updateDate!;
     }
 
-    public getId() {
-        return this.id;
-    }
-
-    public getFuncionarios(): Funcionario[] {
-        return this.funcionarios;
-    }
-
-    public getLogradouro(): Logradouro {
-        return this.logradouro;
-    }
-
-    public getCorridas(): Corrida[] {
-        return this.corridas;
-    }
 }

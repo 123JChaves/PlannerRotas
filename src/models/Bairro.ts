@@ -6,30 +6,27 @@ import { Logradouro } from "./Logradouro";
 export class Bairro {
 
     @PrimaryGeneratedColumn()
-    private id: number;
+    id: number;
 
     @Column()
-    private nome: string;
+    nome: string;
 
-    @ManyToOne(() => Cidade, cidade => cidade.getBairros)
-    private cidade: Cidade;
+    @ManyToOne(() => Cidade, cidade => cidade.bairros, {cascade: true})
+    cidade: Cidade;
 
-    @OneToMany(() => Logradouro, logradouro => logradouro.getBairro)
-    private logradouros: Logradouro[];
+    @OneToMany(() => Logradouro, logradouro => logradouro.bairro)
+    logradouros?: Logradouro[];
 
-    constructor(id: number, nome: string, cidade: Cidade, logradouros: Logradouro[]) {
-        this.id = id;
-        this.nome = nome;
-        this.cidade = cidade;
+    constructor(id?: number,
+                nome?: string,
+                cidade?: Cidade,
+                logradouros?: Logradouro[]) {
+        this.id = id!;
+        this.nome = nome!;
+        this.cidade = cidade!;
+        if(logradouros) {
         this.logradouros = logradouros;
-    }
-
-    public getCidade(): Cidade {
-        return this.cidade;
-    }
-
-    public getLogradouros(): Logradouro[] {
-        return this.logradouros;
+        }
     }
 
 }

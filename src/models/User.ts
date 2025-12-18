@@ -22,13 +22,18 @@ export class User {
   onUpdate: "CURRENT_TIMESTAMP" })
   updateDate: Date;
 
-  constructor(id: number, nome: string, email: string, senha: string, createDate: Date, updateDate: Date) {
-    this.id = id;
-    this.nome = nome;
-    this.email = email;
-    this.senha = senha;
-    this.createDate = createDate;
-    this.updateDate = updateDate
+  constructor(id?: number,
+              nome?: string,
+              email?: string,
+              senha?: string,
+              createDate?: Date,
+              updateDate?: Date) {
+    this.id = id!;
+    this.nome = nome!;
+    this.email = email!;
+    this.senha = senha!;
+    this.createDate = createDate!;
+    this.updateDate = updateDate!;
   }
 
   getNome() {

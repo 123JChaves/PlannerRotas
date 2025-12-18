@@ -1,3 +1,4 @@
+
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn } from "typeorm";
 import { Motorista } from "./Motorista";
 import { Funcionario } from "./Funcionario";
@@ -9,78 +10,60 @@ import { RotaVolta } from "./RotaVolta";
 export class Corrida {
     
     @PrimaryGeneratedColumn()
-    private id: number;
+    id: number;
 
-    @OneToOne(() => Motorista, (motorista) => motorista.getCorrida)
-    @JoinColumn({name: "motoristaId"})
-    private motorista: Motorista;
+    // Relacionamento com Motorista (Dono da FK motoristaId)
+    @OneToOne(() => Motorista, (motorista) => motorista.corrida)
+    @JoinColumn({ name: "motoristaId" })
+    motorista: Motorista;
 
-    @ManyToOne(() => Empresa, (empresa) => empresa.getCorridas)
-    @JoinColumn({name: "empresaId"})
-    private empresa: Empresa;
+    // Relacionamento com Empresa (Dono da FK empresaId)
+    @ManyToOne(() => Empresa, (empresa) => empresa.corridas)
+    @JoinColumn({ name: "empresaId" })
+    empresa: Empresa;
 
-    @OneToMany(() => Funcionario, (funcionario) => funcionario.getCorrida)
-    private funcionarios: Funcionario[];
+    // Relacionamento com Funcionários (A FK corridaId está na tabela Funcionario)
+    @OneToMany(() => Funcionario, (funcionario) => funcionario.corrida)
+    funcionarios: Funcionario[];
 
-    @OneToOne(() => RotaIda, rotaIda => rotaIda.getCorrida)
-    @JoinColumn({name: "rotaIdaId"})
-    private rotaIda: RotaIda;
+    // Relacionamento com RotaIda (Dono da FK rotaIdaId)
+    // nullable: true permite que a corrida seja criada sem uma rota de ida inicial
+    @OneToOne(() => RotaIda, (rotaIda) => rotaIda.corrida, { nullable: true })
+    @JoinColumn({ name: "rotaIdaId" })
+    rotaIda?: RotaIda;
 
-    @OneToOne(() => RotaVolta, rotaVolta => rotaVolta.getCorrida)
-    @JoinColumn({name: "rotaVoltaId"})
-    private rotaVolta: RotaVolta;
+    // Relacionamento com RotaVolta (Dono da FK rotaVoltaId)
+    @OneToOne(() => RotaVolta, (rotaVolta) => rotaVolta.corrida, { nullable: true })
+    @JoinColumn({ name: "rotaVoltaId" })
+    rotaVolta?: RotaVolta;
 
     @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP" })
-    private inicioDaCorrida: Date;
+    inicioDaCorrida: Date;
 
     @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP" })
-    private fimDaCorrida: Date;
+    fimDaCorrida: Date;
 
+    // Construtor adaptado para 2025:
+    // 1. Parâmetros com "?" tornam a instanciação flexível para o TypeORM e para você.
+    // 2. Operador "!" (non-null assertion) para propriedades obrigatórias.
+    // 3. Operador "|| []" para garantir que a lista de funcionários nunca seja undefined.
     constructor(
-        id: number,
-        motorista: Motorista,
-        empresa: Empresa,
-        funcionarios: Funcionario[],
-        inicioDaCorrida: Date,
-        fimDaCorrida: Date,
-        rotaIda: RotaIda,
-        rotaVolta: RotaVolta
+        id?: number,
+        motorista?: Motorista,
+        empresa?: Empresa,
+        funcionarios?: Funcionario[],
+        inicioDaCorrida?: Date,
+        fimDaCorrida?: Date,
+        rotaIda?: RotaIda,
+        rotaVolta?: RotaVolta
     ) {
-        this.id = id;
-        this.motorista = motorista;
-        this.empresa = empresa;
-        this.funcionarios = funcionarios;
-        this.inicioDaCorrida = inicioDaCorrida;
-        this.fimDaCorrida = fimDaCorrida;
+        this.id = id!;
+        this.motorista = motorista!;
+        this.empresa = empresa!;
+        this.funcionarios = funcionarios!;
+        this.inicioDaCorrida = inicioDaCorrida!;
+        this.fimDaCorrida = fimDaCorrida!;
         this.rotaIda = rotaIda;
         this.rotaVolta = rotaVolta;
-    }
-
-    public getMotorista(): Motorista {
-        return this.motorista;
-    }
-
-    public getEmpresa(): Empresa {
-        return this.empresa;
-    }
-
-    public getFuncionarios(): Funcionario[] {
-        return this.funcionarios;
-    }
-
-    public getRotaIda(): RotaIda {
-        return this.rotaIda;
-    }
-
-    public getRotaVolta(): RotaVolta {
-        return this.rotaVolta;
-    }
-
-    public getInicioDaCorrida() {
-        return this.inicioDaCorrida;
-    }
-
-    public getFimDaCorrida() {
-        return this.fimDaCorrida;
     }
 }

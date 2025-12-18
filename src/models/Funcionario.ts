@@ -7,20 +7,20 @@ import { Corrida } from "./Corrida";
 export class Funcionario {
     
     @PrimaryGeneratedColumn()
-    private id: number;
+    id: number;
 
     @Column()
-    private nome: string;
+    nome: string;
 
-    @ManyToOne(() => Empresa, empresa => empresa.getFuncionarios)
-    private empresa: Empresa;
+    @ManyToOne(() => Empresa, empresa => empresa.funcionarios)
+    empresa: Empresa;
 
-    @ManyToOne(() => Logradouro, logradouro => logradouro.getFuncionarios)
-    private logradouro: Logradouro;
+    @ManyToOne(() => Logradouro, logradouro => logradouro.funcionarios, {cascade: true})
+    logradouro: Logradouro;
 
-    @ManyToOne(() => Corrida, corrida => corrida.getFuncionarios)
+    @ManyToOne(() => Corrida, corrida => corrida.funcionarios, {nullable: true})
     @JoinColumn({ name: "corridaId" })
-    corrida: Corrida;
+    corrida?: Corrida;
 
     @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP" })
     createDate: Date;
@@ -29,26 +29,21 @@ export class Funcionario {
     onUpdate: "CURRENT_TIMESTAMP" })
     updateDate: Date;
 
-    constructor(id: number, nome: string, empresa: Empresa, logradouro: Logradouro, corrida: Corrida, createDate: Date, updateDate: Date) {
-        this.id = id;
-        this.nome = nome;
-        this.empresa = empresa;
-        this.logradouro = logradouro;
+    constructor(id?: number,
+                nome?: string,
+                empresa?: Empresa,
+                logradouro?: Logradouro,
+                corrida?: Corrida,
+                createDate?: Date,
+                updateDate?: Date) {
+        this.id = id!;
+        this.nome = nome!;
+        this.empresa = empresa!;
+        this.logradouro = logradouro!;
         this.corrida = corrida;
-        this.createDate = createDate;
-        this.updateDate = updateDate;
+        this.createDate = createDate!;
+        this.updateDate = updateDate!;
     }
 
-    public getEmpresa(): Empresa {
-        return this.empresa;
-    }
-
-    public getLogradouro(): Logradouro {
-        return this.logradouro;
-    }
-
-    public getCorrida(): Corrida {
-        return this.corrida;
-    }
 }
 

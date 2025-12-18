@@ -7,41 +7,38 @@ import { Funcionario } from "./Funcionario";
 export class Logradouro {
 
     @PrimaryGeneratedColumn()
-    private id: number;
+    id: number;
 
     @Column()
-    private nome: string;
+    nome: string;
 
     @Column()
-    private numero: number;
+    numero: number;
 
-    @ManyToOne(() => Bairro, bairro => bairro.getLogradouros)
-    private bairro: Bairro;
+    @ManyToOne(() => Bairro, bairro => bairro.logradouros, {cascade: true})
+    bairro: Bairro;
 
-    @OneToMany(() => Funcionario, funcionario => funcionario.getLogradouro)
-    private funcionarios: Funcionario[];
+    @OneToMany(() => Funcionario, funcionario => funcionario.logradouro)
+    funcionarios?: Funcionario[];
 
-    @OneToMany(() => Empresa, empresa => empresa.getLogradouro)
-    private empresas: Empresa[];
+    @OneToMany(() => Empresa, empresa => empresa.logradouro)
+    empresas?: Empresa[];
 
-    constructor(id: number, nome: string, numero: number, bairro: Bairro, empresas: Empresa[], funcionarios: Funcionario[]) {
-        this.id = id;
-        this.nome = nome;
-        this.numero = numero;
-        this.bairro = bairro;
+    constructor(id?: number,
+                nome?: string,
+                numero?: number,
+                bairro?: Bairro,
+                empresas?: Empresa[],
+                funcionarios?: Funcionario[]) {
+        this.id = id!;
+        this.nome = nome!;
+        this.numero = numero!;
+        this.bairro = bairro!;
+        if(funcionarios) {
         this.funcionarios = funcionarios;
+        }
+        if(empresas) {
         this.empresas = empresas;
-    }
-
-    public getBairro(): Bairro {
-        return this.bairro;
-    }
-
-    public getFuncionarios(): Funcionario[] {
-        return this.funcionarios;
-    }
-
-    public getEmpresas(): Empresa[] {
-        return this.empresas;
+        }
     }
 }

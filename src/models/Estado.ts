@@ -11,24 +11,21 @@ export class Estado {
     @Column()
     nome: string;
 
-    @ManyToOne(() => Pais, pais => pais.estados)
+    @ManyToOne(() => Pais, pais => pais.estados, {cascade: true})
     pais: Pais;
 
-    @OneToMany(() => Cidade, cidade => cidade.getEstado)
-    cidades: Cidade[];
+    @OneToMany(() => Cidade, cidade => cidade.estado)
+    cidades?: Cidade[];
 
-    constructor(id: number, nome: string, pais: Pais, cidades: Cidade[]) {
-        this.id = id;
-        this.nome = nome;
-        this.pais = pais;
+    constructor(id?: number,
+                nome?: string,
+                pais?: Pais,
+                cidades?: Cidade[]) {
+        this.id = id!;
+        this.nome = nome!;
+        this.pais = pais!;
+        if(cidades) {
         this.cidades = cidades;
-    }
-
-    public getPais() {
-        return this.pais;
-    }
-
-    public getCidades(): Cidade[] {
-        return this.cidades;
+        }
     }
 }

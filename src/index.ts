@@ -12,6 +12,10 @@ import UserController from "./controllers/UserController";
 
 app.use('/', UserController);
 
+import EmpresaController from "./controllers/EmpresaController";
+
+app.use('/', EmpresaController);
+
 app.get("/", (req: Request, res: Response) => {
     res.send("Bem-vindo, Juliano");
 });

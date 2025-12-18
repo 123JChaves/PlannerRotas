@@ -3,9 +3,9 @@ import { Funcionario } from "./Funcionario";
 
 export abstract class Rota {
 
-    private funcionarios: Funcionario[];
+    funcionarios: Funcionario[];
     
-    private empresa: Empresa;
+    empresa: Empresa;
 
     constructor(funcionarios: Funcionario[], empresa: Empresa) {
         
@@ -22,17 +22,5 @@ export abstract class Rota {
         if (index !== -1) {
             this.funcionarios.splice(index, 1);
         }
-    }
-
-    protected getFuncionarios(): Funcionario[] {
-        return this.funcionarios;
-    }
-
-    protected getEmpresa(): Empresa {
-        return this.empresa;
-    }
-
-    protected criarRotaIda(): void {
-
     }
 }

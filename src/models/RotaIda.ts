@@ -9,9 +9,9 @@ import { Corrida } from "./Corrida";
 export class RotaIda extends Rota {
 
     @PrimaryGeneratedColumn()
-    private id: number;
+    id: number;
 
-    @OneToOne(() => Corrida, corrida => corrida.getRotaIda)
+    @OneToOne(() => Corrida, corrida => corrida.rotaIda)
     corrida: Corrida;
 
     constructor(id: number, funcionarios: Funcionario[], empresa: Empresa, corrida: Corrida) {
@@ -20,43 +20,32 @@ export class RotaIda extends Rota {
         this.corrida = corrida;
     }
 
-    public getCorrida(): Corrida {
-        return this.corrida;
-    }
-
-    public getFuncionarios(): Funcionario[] {
-        return super.getFuncionarios();
-    }
-
-    public getEmpresa(): Empresa {
-        return super.getEmpresa();
-    }
 
     public getEnderecosFuncionarios(): Logradouro[] {
-        return this.getFuncionarios().map(funcionario => funcionario.getLogradouro());
+        return this.funcionarios.map(funcionario => funcionario.logradouro);
     }
 
     public getDestino(): Logradouro {
-        return this.getEmpresa().getLogradouro();
+        return this.empresa.logradouro;
     }
 
     public adicionarFuncionario(funcionario: Funcionario): void {
-    if (this.getFuncionarios().length >= 4) {
+    if (this.funcionarios.length >= 4) {
             throw new Error("A rota de ida já está com 4 funcionários");
         }
-        if (funcionario.getLogradouro()) {
+        if (funcionario.logradouro) {
             super.adicionarFuncionario(funcionario);
         }
     }
 
     public removerFuncionario(funcionario: Funcionario): void {
-    const index = this.getFuncionarios().indexOf(funcionario);
+    const index = this.funcionarios.indexOf(funcionario);
     if (index !== -1) {
         super.removerFuncionario(funcionario);
         }
     }
 
     public estaCheia(): boolean {
-        return this.getFuncionarios().length >= 4;
+        return this.funcionarios.length >= 4;
     }
 }

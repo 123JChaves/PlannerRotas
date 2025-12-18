@@ -5,30 +5,35 @@ import { Motorista } from "./Motorista";
 export class Carro{
 
     @PrimaryGeneratedColumn()
-    private id: number;
+    id: number;
 
     @Column()
-    private marca: string;
+    marca: string;
 
     @Column()
-    private modelo: string;
+    modelo: string;
 
     @Column()
-    private ano: string;
+    ano: string;
 
-    @ManyToOne(() => Motorista, motorista => motorista.getCarros)
-    private motorista: Motorista;
+    // @Column()
+    // placa: string;
 
-    constructor(id: number, marca: string, modelo: string, ano: string, motorista: Motorista) {
-        this.id = id;
-        this.marca = marca;
-        this.modelo = modelo;
-        this.ano = ano;
+    @ManyToOne(() => Motorista, motorista => motorista.carros, { nullable: true })
+    motorista?: Motorista;
+
+    constructor(id?: number,
+                marca?: string,
+                modelo?: string,
+                ano?: string,
+                placa?: string,
+                motorista?: Motorista) {
+        this.id = id!;
+        this.marca = marca!;
+        this.modelo = modelo!;
+        this.ano = ano!;
+        //this.placa = placa!;
         this.motorista = motorista;
-    }
-
-    public getMotorista(): Motorista {
-        return this.motorista;
     }
 
 }

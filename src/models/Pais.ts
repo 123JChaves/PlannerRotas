@@ -9,16 +9,17 @@ export class Pais {
     @Column()
     nome: string;
 
-    @OneToMany(() => Estado, estado => estado.getPais)
-    estados: Estado[];
+    @OneToMany(() => Estado, estado => estado.pais)
+    estados?: Estado[];
 
-    constructor(id: number, nome: string, estados: Estado[]) {
-        this.id = id;
-        this.nome = nome;
+    constructor(id?: number,
+                nome?: string,
+                estados?: Estado[]) {
+        this.id = id!;
+        this.nome = nome!;
+        if (estados) {
         this.estados = estados;
+        }
     }
 
-    getEstados(): Estado[] {
-        return this.estados;
-    }
 }

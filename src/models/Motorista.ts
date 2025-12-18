@@ -6,16 +6,16 @@ import { Corrida } from "./Corrida";
 export class Motorista {
     
     @PrimaryGeneratedColumn()
-    private id: number;
+    id: number;
 
     @Column()
-    private nome: string;
+    nome: string;
 
-    @OneToMany(() => Carro, (carro) => carro.getMotorista)
-    carros: Carro[];
+    @OneToMany(() => Carro, (carro) => carro.motorista)
+    carros?: Carro[];
 
-    @OneToOne(() => Corrida, (corrida) => corrida.getMotorista)
-    corrida: Corrida;
+    @OneToOne(() => Corrida, (corrida) => corrida.motorista)
+    corrida?: Corrida;
 
     @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP" })
     createDate: Date;
@@ -24,20 +24,19 @@ export class Motorista {
     onUpdate: "CURRENT_TIMESTAMP" })
     updateDate: Date;
 
-    constructor(id: number, nome: string, carros: Carro[], corrida: Corrida, createDate: Date, updateDate: Date) {
-        this.id = id;
-        this.nome = nome;
+    constructor(id?: number,
+                nome?: string,
+                carros?: Carro[],
+                corrida?: Corrida,
+                createDate?: Date,
+                updateDate?: Date) {
+        this.id = id!;
+        this.nome = nome!;
+        if(carros) {
         this.carros = carros;
+        }
         this.corrida = corrida;
-        this.createDate = createDate;
-        this.updateDate = updateDate;
-    }
-
-    public getCarros(): Carro[] {
-        return this.carros;
-    }
-
-    public getCorrida(): Corrida {
-        return this.corrida;
+        this.createDate = createDate!;
+        this.updateDate = updateDate!;
     }
 }

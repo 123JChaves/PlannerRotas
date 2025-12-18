@@ -6,33 +6,27 @@ import { Bairro } from "./Bairro";
 export class Cidade {
 
     @PrimaryGeneratedColumn()
-    private id: number;
+    id: number;
 
     @Column()
-    private nome: string;
+    nome: string;
 
-    @ManyToOne(() => Estado, estado => estado.getCidades)
-    private estado: Estado;
+    @ManyToOne(() => Estado, estado => estado.cidades, {cascade: true})
+    estado: Estado;
 
-    @OneToMany(() => Bairro, bairro => bairro.getCidade)
-    private bairros: Bairro[];
+    @OneToMany(() => Bairro, bairro => bairro.cidade)
+    bairros?: Bairro[];
 
-    constructor(id: number, nome: string, estado: Estado, bairros: Bairro[]) {
-        this.id = id;
-        this.nome = nome;
-        this.estado = estado;
+    constructor(id?: number,
+                nome?: string,
+                estado?: Estado,
+                bairros?: Bairro[]) {
+        this.id = id!;
+        this.nome = nome!;
+        this.estado = estado!;
+        if(bairros) {
         this.bairros = bairros;
+        }
     }
-
-    public getNome() {
-        return this.nome;
-    }
-
-    public getEstado(): Estado {
-        return this.estado;
-    }
-
-    public getBairros(): Bairro[] {
-        return this.bairros;
-    }
+    
 }
