@@ -1,9 +1,11 @@
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, JoinColumn, ManyToMany, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 import { Empresa } from "./Empresa";
 import { Logradouro } from "./Logradouro";
+import { Corrida } from "./Corrida";
 
-@Entity()
+@Entity("funcionario")
 export class Funcionario {
+    
     @PrimaryGeneratedColumn()
     private id: number;
 
@@ -16,19 +18,28 @@ export class Funcionario {
     @ManyToOne(() => Logradouro, logradouro => logradouro.getFuncionarios)
     private logradouro: Logradouro;
 
-    constructor(id: number, nome: string, empresa: Empresa, logradouro: Logradouro) {
+    @ManyToOne(() => Corrida, corrida => corrida.getFuncionarios)
+    @JoinColumn({ name: "corridaId" })
+    corrida: Corrida;
+
+    constructor(id: number, nome: string, empresa: Empresa, logradouro: Logradouro, corrida: Corrida) {
         this.id = id;
         this.nome = nome;
         this.empresa = empresa;
         this.logradouro = logradouro;
+        this.corrida = corrida;
     }
 
-    public getEmpresa() {
+    public getEmpresa(): Empresa {
         return this.empresa;
     }
 
-    public getLogradouro() {
+    public getLogradouro(): Logradouro {
         return this.logradouro;
+    }
+
+    public getCorrida(): Corrida {
+        return this.corrida;
     }
 }
 
