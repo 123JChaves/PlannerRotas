@@ -161,7 +161,7 @@ router.put("/funcionario/:id", async (req: Request, res: Response) => {
         }
 
         // 4. O método merge serve para mesclar os novos dados que chegaram na requisição (data)
-        // dentro da entidade que você já buscou do banco (funcionario).
+        // dentro da entidade do banco que já foi buscada (funcionario).
 
         funcionarioRepository.merge(funcionario, data);
         const updatedFuncionario = await funcionarioRepository.save(funcionario);
