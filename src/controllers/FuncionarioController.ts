@@ -3,7 +3,6 @@ import { Not } from "typeorm";
 import { AppDataSource } from "../data-source";
 import { Funcionario } from "../models/Funcionario";
 import { Logradouro } from "../models/Logradouro";
-import { Pais } from "../models/Pais";
 
 const router = express.Router();
 
@@ -132,7 +131,7 @@ router.put("/funcionario/:id", async (req: Request, res: Response) => {
             return res.status(404).json({ message: "Funcionário não encontrado!" });
         }
 
-        // 2. Validação de Duplicidade de CNPJ
+        // 2. Validação de Duplicidade de CPF
         if (data.cpf) {
             const existingFuncionario = await funcionarioRepository.findOne({
                 where: {
@@ -142,7 +141,7 @@ router.put("/funcionario/:id", async (req: Request, res: Response) => {
             });
 
             if (existingFuncionario) {
-                return res.status(400).json({ message: "Já existe outro funcionário cadastrado com este CNPJ!" });
+                return res.status(400).json({ message: "Já existe outro funcionário cadastrado com este CPF!" });
             }
         }
 
