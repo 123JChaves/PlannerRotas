@@ -1,4 +1,4 @@
-import { Column, Entity, JoinColumn, ManyToMany, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 import { Empresa } from "./Empresa";
 import { Logradouro } from "./Logradouro";
 import { Corrida } from "./Corrida";
@@ -12,13 +12,16 @@ export class Funcionario {
     @Column()
     nome: string;
 
-    @ManyToOne(() => Empresa, empresa => empresa.funcionarios)
+    @Column({unique: true})
+    cpf: string;
+
+    @ManyToOne(() => Empresa, empresa => empresa.funcionarios, { onDelete: "SET NULL" })
     empresa: Empresa;
 
     @ManyToOne(() => Logradouro, logradouro => logradouro.funcionarios, {cascade: true})
     logradouro: Logradouro;
 
-    @ManyToOne(() => Corrida, corrida => corrida.funcionarios, {nullable: true})
+    @ManyToOne(() => Corrida, corrida => corrida.funcionarios, {nullable: true},)
     @JoinColumn({ name: "corridaId" })
     corrida?: Corrida;
 
@@ -31,6 +34,7 @@ export class Funcionario {
 
     constructor(id?: number,
                 nome?: string,
+                cpf?: string,
                 empresa?: Empresa,
                 logradouro?: Logradouro,
                 corrida?: Corrida,
@@ -38,6 +42,7 @@ export class Funcionario {
                 updateDate?: Date) {
         this.id = id!;
         this.nome = nome!;
+        this.cpf = cpf!;
         this.empresa = empresa!;
         this.logradouro = logradouro!;
         this.corrida = corrida;

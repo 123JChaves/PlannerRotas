@@ -18,7 +18,7 @@ export class Corrida {
     motorista: Motorista;
 
     // Relacionamento com Empresa (Dono da FK empresaId)
-    @ManyToOne(() => Empresa, (empresa) => empresa.corridas)
+    @ManyToOne(() => Empresa, (empresa) => empresa.corridas, { onDelete: "SET NULL" })
     @JoinColumn({ name: "empresaId" })
     empresa: Empresa;
 
@@ -43,10 +43,9 @@ export class Corrida {
     @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP" })
     fimDaCorrida: Date;
 
-    // Construtor adaptado para 2025:
-    // 1. Parâmetros com "?" tornam a instanciação flexível para o TypeORM e para você.
+    // Construtor:
+    // 1. Parâmetros com "?" tornam a instanciação flexível para o TypeORM e para o programador.
     // 2. Operador "!" (non-null assertion) para propriedades obrigatórias.
-    // 3. Operador "|| []" para garantir que a lista de funcionários nunca seja undefined.
     constructor(
         id?: number,
         motorista?: Motorista,

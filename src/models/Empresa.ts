@@ -12,11 +12,14 @@ export class Empresa {
     @Column()
     nome: string;
 
-    @OneToMany(() => Funcionario, funcionario => funcionario.empresa)
-    funcionarios?: Funcionario[];
+    @Column({unique: true})
+    cnpj: string;
 
     @ManyToOne(() => Logradouro, logradouro => logradouro.empresas, {cascade: true})
     logradouro: Logradouro;
+
+    @OneToMany(() => Funcionario, funcionario => funcionario.empresa)
+    funcionarios?: Funcionario[];
 
     @OneToMany(() => Corrida, corrida => corrida.empresa)
     corridas?: Corrida[];
@@ -30,18 +33,20 @@ export class Empresa {
 
     constructor(id?: number,
                 nome?: string,
-                funcionarios?: Funcionario[],
                 logradouro?: Logradouro,
+                cnpj?: string,
+                funcionarios?: Funcionario[],
                 corridas?: Corrida [],
                 createDate?: Date,
                 updateDate?: Date)
     {
         this.id = id!;
         this.nome = nome!;
+        this.logradouro = logradouro!;
+        this.cnpj = cnpj!;
         if (funcionarios) {
             this.funcionarios = funcionarios;
         }
-        this.logradouro = logradouro!;
         if (corridas) {
         this.corridas = corridas;
         }
