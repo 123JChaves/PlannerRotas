@@ -1,5 +1,4 @@
-
-import { Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, JoinColumn, ManyToMany, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn } from "typeorm";
 import { Motorista } from "./Motorista";
 import { Funcionario } from "./Funcionario";
 import { Empresa } from "./Empresa";
@@ -13,7 +12,7 @@ export class Corrida {
     id: number;
 
     // Relacionamento com Motorista (Dono da FK motoristaId)
-    @OneToOne(() => Motorista, (motorista) => motorista.corrida)
+    @ManyToOne(() => Motorista, (motorista) => motorista.corridas)
     @JoinColumn({ name: "motoristaId" })
     motorista: Motorista;
 
@@ -23,7 +22,7 @@ export class Corrida {
     empresa: Empresa;
 
     // Relacionamento com Funcionários (A FK corridaId está na tabela Funcionario)
-    @OneToMany(() => Funcionario, (funcionario) => funcionario.corrida)
+    @ManyToMany(() => Funcionario, funcionario => funcionario.corridas)
     funcionarios: Funcionario[];
 
     // Relacionamento com RotaIda (Dono da FK rotaIdaId)

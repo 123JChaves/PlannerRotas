@@ -1,4 +1,4 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 import { Empresa } from "./Empresa";
 import { Logradouro } from "./Logradouro";
 import { Corrida } from "./Corrida";
@@ -21,9 +21,13 @@ export class Funcionario {
     @ManyToOne(() => Logradouro, logradouro => logradouro.funcionarios, {cascade: true})
     logradouro: Logradouro;
 
-    @ManyToOne(() => Corrida, corrida => corrida.funcionarios, {nullable: true},)
-    @JoinColumn({ name: "corridaId" })
-    corrida?: Corrida;
+    @ManyToMany(() => Corrida, (corrida) => corrida.funcionarios)
+    @JoinTable({ 
+        name: "funcionario_corridas",
+        joinColumn: { name: "funcionarioId", referencedColumnName: "id" },
+        inverseJoinColumn: { name: "corridaId", referencedColumnName: "id" }
+        })
+    corridas?: Corrida[];
 
     @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP" })
     createDate: Date;
@@ -37,7 +41,7 @@ export class Funcionario {
                 cpf?: string,
                 empresa?: Empresa,
                 logradouro?: Logradouro,
-                corrida?: Corrida,
+                corridas?: Corrida[],
                 createDate?: Date,
                 updateDate?: Date) {
         this.id = id!;
@@ -45,7 +49,7 @@ export class Funcionario {
         this.cpf = cpf!;
         this.empresa = empresa!;
         this.logradouro = logradouro!;
-        this.corrida = corrida;
+        this.corridas = corridas;
         this.createDate = createDate!;
         this.updateDate = updateDate!;
     }

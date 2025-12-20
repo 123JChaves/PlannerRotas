@@ -1,4 +1,4 @@
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, ManyToMany, PrimaryGeneratedColumn } from "typeorm";
 import { Motorista } from "./Motorista";
 
 @Entity("carro")
@@ -16,24 +16,26 @@ export class Carro{
     @Column()
     ano: string;
 
-    // @Column()
-    // placa: string;
+    @Column({ unique: true })
+    placa: string;
 
-    @ManyToOne(() => Motorista, motorista => motorista.carros, { nullable: true })
-    motorista?: Motorista;
+    @ManyToMany(() => Motorista, (motorista) => motorista.carros)
+    motoristas?: Motorista[];
 
     constructor(id?: number,
                 marca?: string,
                 modelo?: string,
                 ano?: string,
                 placa?: string,
-                motorista?: Motorista) {
+                motoristas?: Motorista[]) {
         this.id = id!;
         this.marca = marca!;
         this.modelo = modelo!;
         this.ano = ano!;
-        //this.placa = placa!;
-        this.motorista = motorista;
+        this.placa = placa!;
+        if(motoristas) {
+        this.motoristas = motoristas;
+        }
     }
 
 }

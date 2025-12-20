@@ -1,4 +1,4 @@
-import { Column, Entity, ManyToMany, OneToMany, OneToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, JoinTable, ManyToMany, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 import { Carro } from "./Carro";
 import { Corrida } from "./Corrida";
 
@@ -11,11 +11,19 @@ export class Motorista {
     @Column()
     nome: string;
 
-    @OneToMany(() => Carro, (carro) => carro.motorista)
+    @Column({unique: true})
+    cpf: string;
+
+    @ManyToMany(() => Carro, carro => carro.motoristas, { cascade: true, eager: true })
+    @JoinTable({
+        name: "motorista_carros", // Nome da tabela intermediária
+        joinColumn: { name: "motoristaId", referencedColumnName: "id" },
+        inverseJoinColumn: { name: "carroId", referencedColumnName: "id" }
+    })
     carros?: Carro[];
 
-    @OneToOne(() => Corrida, (corrida) => corrida.motorista)
-    corrida?: Corrida;
+    @OneToMany(() => Corrida, (corrida) => corrida.motorista, {nullable: true})
+    corridas?: Corrida[];
 
     @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP" })
     createDate: Date;
@@ -26,16 +34,20 @@ export class Motorista {
 
     constructor(id?: number,
                 nome?: string,
+                cpf?: string,
                 carros?: Carro[],
-                corrida?: Corrida,
+                corridas?: Corrida[],
                 createDate?: Date,
                 updateDate?: Date) {
         this.id = id!;
         this.nome = nome!;
+        this.cpf = cpf!;
         if(carros) {
         this.carros = carros;
         }
-        this.corrida = corrida;
+        if(corridas) {
+        this.corridas = corridas;
+        }
         this.createDate = createDate!;
         this.updateDate = updateDate!;
     }

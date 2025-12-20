@@ -17,6 +17,12 @@ app.use('/', EmpresaController);
 import FuncionarioController from "./controllers/FuncionarioController";
 app.use('/', FuncionarioController);
 
+import MotoristaController from "./controllers/MotoristaController";
+app.use('/', MotoristaController);
+
+import CarroController from "./controllers/CarroController";
+app.use('/', CarroController);
+
 app.get("/", (req: Request, res: Response) => {
     res.send("Bem-vindo, Juliano");
 });
