@@ -153,7 +153,7 @@ router.delete("/motorista/:id", async(req: Request, res: Response) => {
 
         const motorista = await motoristaRepository.findOne({
             where: {id: parseInt(id)},
-        });7
+        });
         if(!motorista) {
             return res.status(404).json({message: "Motorista não encontrado"});
         };
@@ -163,7 +163,7 @@ router.delete("/motorista/:id", async(req: Request, res: Response) => {
             motoristaDelete: motorista,
         });
     } catch (error) {
-        return res.status(500).json({message: "Erro ao deletar motorista!"})    
+        return res.status(500).json({message: "Erro ao deletar motorista!"});
     }
 
 });

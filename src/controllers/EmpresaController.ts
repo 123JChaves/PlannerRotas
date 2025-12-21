@@ -50,6 +50,38 @@ router.get("/empresa/:id", async (req: Request, res: Response) => {
     }
 });
 
+// Rota para listar funcionários de uma empresa específica
+router.get("/empresa/:id/funcionario", async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const empresaRepository = AppDataSource.getRepository(Empresa);
+
+        // Buscamos a empresa e trazemos a lista de funcionários vinculada
+        const empresaComFuncionarios = await empresaRepository.findOne({
+            where: { id: parseInt(id) },
+            relations: [
+                "funcionarios", // Traz a lista de funcionários
+                "funcionarios.logradouro", // Traz o endereço do funcionário
+                "funcionarios.logradouro.bairro", //Traz o bairro do funcionário
+                "funcionarios.logradouro.bairro.cidade", //Traz a cidade do funcionário
+                "funcionarios.logradouro.bairro.cidade.estado", //Traz o estado do funcionário
+                "funcionarios.logradouro.bairro.cidade.estado.pais" //Traz o país do funcionário
+            ]
+        });
+
+        if (!empresaComFuncionarios) {
+            return res.status(404).json({ message: "Empresa não encontrada!" });
+        }
+
+        // Retornamos apenas a lista de funcionários daquela empresa
+        return res.status(200).json(empresaComFuncionarios.funcionarios);
+
+    } catch (error: any) {
+        console.error("Erro ao listar funcionários da empresa:", error);
+        return res.status(500).json({ message: "Erro ao listar os funcionários da empresa!" });
+    }
+});
+
 // Cadastro de empresa (Com suporte a Cascade)
 router.post("/empresa", async (req: Request, res: Response) => {
     try {

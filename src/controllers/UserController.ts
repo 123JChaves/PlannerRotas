@@ -132,13 +132,8 @@ router.put("/users/:id", async (req: Request, res: Response) => {
 //Rota para a deletar o usuário:
 
 router.delete("/users/:id", async(req: Request, res: Response) => {
-
     try {
-
         const {id} = req.params;
-
-        const data = req.body;
-
         const userRepository = AppDataSource.getRepository(User);
 
         const user = await userRepository.findOneBy({id: parseInt(id)});
@@ -151,13 +146,11 @@ router.delete("/users/:id", async(req: Request, res: Response) => {
 
         await userRepository.remove(user);
 
-        res.status(200).json({
-        message: "Usuário deletado com sucesso!",
-        user: user,
-            });
+        return res.status(200).json({
+            message: "Usuário deletado com sucesso!",
+            userDelet: user,
+        });
 
-
-        
     } catch (error) {
             return res.status(500).json({
             message: "Erro ao deletar o usuário!"
