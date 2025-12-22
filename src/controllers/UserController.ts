@@ -2,11 +2,13 @@ import express, { Request, Response } from "express";
 import { Not } from "typeorm";
 import { AppDataSource } from "../data-source";
 import { User } from "../models/User";
+import * as bcrypt from 'bcrypt';
+import * as jwt from 'jsonwebtoken';
+import 'dotenv/config';
 
 const router = express.Router();
 
 //Rota para a listagem de usuário:
-
 router.get("/users", async (req: Request, res: Response) => {
     try {
         const userRepository = AppDataSource.getRepository(User);
@@ -20,10 +22,10 @@ router.get("/users", async (req: Request, res: Response) => {
         message: "Erro ao listar os usuários!"
         });
     }
+
 });
 
 //Rota para visualização do usuário usando ID:
-
 router.get("/users/:id", async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
@@ -43,10 +45,10 @@ router.get("/users/:id", async (req: Request, res: Response) => {
             message: "Erro ao visualizar o usuário!"
             });
         }
+
 });
 
 //Rota para cadastro de usuário:
-
 router.post("/users", async (req: Request, res: Response) => {
     try {
         var data = req.body;
@@ -75,20 +77,85 @@ router.post("/users", async (req: Request, res: Response) => {
     } catch (error) {
     return res.status(500).json({
         message: "Erro ao cadastrar usuário!",
-    });
+        });
     }
+
+});
+
+// Rota para Autenticação (Login)
+router.post("/login", async (req: Request, res: Response) => {
+    try {
+        const { email, senha } = req.body;
+        const userRepository = AppDataSource.getRepository(User);
+
+        // 1. Busca o usuário pelo e-mail
+        // Importante: Neste modelo, a senha será carregada para comparação
+        const user = await userRepository.findOne({ 
+            where: {email},
+            select: ["id", "nome", "email", "senha"],
+         });
+
+        if (!user) {
+            return res.status(401).json({
+                message: "E-mail ou senha inválidos!"
+            });
+        }
+
+        // 2. Mesma lógica do Frontend (Segurança em 2025)
+        const regexSenha = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{6,}$/;
+
+        if (!regexSenha.test(senha)) {
+            return res.status(400).json({
+                message: "A senha não atende aos requisitos de segurança (6 caracteres, letra, número e símbolo)."
+            });
+        }
+
+        // 3. Compara a senha enviada com o Hash salvo no banco
+        const senhaValida = await bcrypt.compare(senha, user.senha);
+
+        if (!senhaValida) {
+            return res.status(401).json({
+                message: "E-mail ou senha inválidos!"
+            });
+        }
+
+        // 4. Login bem sucedido
+        // Em um cenário real, aqui seria gerado um Token JWT
+        // Definição de uma chave secreta(Em produção usar process.env.JWT_SECRET)
+       const secretKey = process.env.JWT_SECRET!;
+
+        const token = jwt.sign(
+            { id: user.id, email: user.email }, // Objeto Payload
+            secretKey,                          // Chave Secreta
+            { expiresIn: "8h" }                 // Tempo de expiração "8h"
+        );
+
+        return res.status(200).json({
+            message: "Login realizado com sucesso!",
+            token: token,
+            user: {
+                id: user.id,
+                nome: user.nome,
+                email: user.email
+            }
+        });
+
+    } catch (error:any) {
+        console.error(error);
+        return res.status(500).json({
+            message: "Erro ao processar o login!"
+        });
+    }
+
 });
 
 //Rota para a edição do usuário:
-
 router.put("/users/:id", async (req: Request, res: Response) => {
 
     try {
 
         const {id} = req.params;
-
         const data = req.body;
-
         const userRepository = AppDataSource.getRepository(User);
 
         const user = await userRepository.findOneBy({id: parseInt(id)});
@@ -127,10 +194,9 @@ router.put("/users/:id", async (req: Request, res: Response) => {
             });
         }
 
-} )
+});
 
 //Rota para a deletar o usuário:
-
 router.delete("/users/:id", async(req: Request, res: Response) => {
     try {
         const {id} = req.params;

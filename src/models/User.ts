@@ -12,7 +12,7 @@ export class User {
   @Column({unique: true})
   email: string;
 
-  @Column()
+  @Column({select: false})
   senha: string;
 
   @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP" })
@@ -36,19 +36,9 @@ export class User {
     this.updateDate = updateDate!;
   }
 
-  getNome() {
-        return this.nome
-  };
-
   @BeforeInsert()
   async hashSenhaInsert() {
     this.senha = await bcrypt.hash(this.senha, 10);
   };
 
-  @BeforeUpdate()
-  async hashSenhaUpdate() {
-    if(this.senha) {
-      this.senha = await bcrypt.hash(this.senha, 10);
-    };
-  };
 }
