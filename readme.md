@@ -65,7 +65,11 @@ npm install bcrypt
 npm install --save-dev @types/bcrypt
 Na entidade = import * as bcrypt from 'bcrypt';
 
-* 
+* Importar a biblioteca JWT
+
+* Instalar o .env
+npm install dotenv
+Na entidade = import 'dotenv/config';
 
 Planner de Rotas:
 
@@ -91,13 +95,13 @@ do primiro embarque, e o horário de entrada dos funcionários;
     a) Inserir na rota tantos colaboradores (até 4) em que seja possível o deslocamento do ponto A (Primeiro Embarque), passando por todos os embarques, ao opnto B (Destino final), em que seja possível chegar no horário x, senão
     desmebrar rota.
 
-3) Redução de custos;
+1) Redução de custos;
 
     a) Calcular o valor total da corrida com base no algoritmo de cáculo x:
 
     a1) Calcular o valor da rota, e se o valor total de 1 rota focar mais caro do que desmembrar a rota em 2, 3 etc. rotas, então desmembrar até o menor valor total.
 
-4) Integrar o algoritmo do requisito 3 com o requisito 2, sendo que o algoritmo 3 deve prevalecer.
+2) Integrar o algoritmo do requisito 3 com o requisito 2, sendo que o algoritmo 3 deve prevalecer.
 
 ## Execução
 

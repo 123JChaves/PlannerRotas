@@ -23,7 +23,7 @@ export const AppDataSource = new DataSource({
     database: "plannerrotas",
     synchronize: true,
     logging: true,
-    entities: [User, Pais, Estado, Cidade, Bairro, Logradouro, Motorista, 
+    entities: [User, Pais, Estado, Cidade, Bairro, Logradouro, Motorista,
     Carro, Empresa, Funcionario, Corrida, RotaIda, RotaVolta],
 
     subscribers: [],

@@ -33,6 +33,7 @@ Thumbs.db
 *.lock
 .env.lock 
 .ormconfig.json
+data-source.ts/
 
 # Other
 coverage/

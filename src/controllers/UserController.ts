@@ -13,12 +13,11 @@ router.get("/users", async (req: Request, res: Response) => {
     try {
         const userRepository = AppDataSource.getRepository(User);
         const users = await userRepository.find();
-        res.status(200).json(users);
-
-        return;
+        
+        return res.status(200).json(users);;
         
     } catch (error) {
-        res.status(500).json({
+        return res.status(500).json({
         message: "Erro ao listar os usuários!"
         });
     }
@@ -151,49 +150,47 @@ router.post("/login", async (req: Request, res: Response) => {
 
 //Rota para a edição do usuário:
 router.put("/users/:id", async (req: Request, res: Response) => {
-
     try {
-
-        const {id} = req.params;
-        const data = req.body;
+        const { id } = req.params;
+        const { nome, email, senha } = req.body; // Extrai campos específicos
         const userRepository = AppDataSource.getRepository(User);
 
-        const user = await userRepository.findOneBy({id: parseInt(id)});
+        const user = await userRepository.findOneBy({ id: parseInt(id) });
+        if (!user) return res.status(404).json({ message: "Usuário não encontrado!" });
 
-        if(!user) {
-            return res.status(404).json({
-                message: "Usuário não encontrado!"
+        // 1. Validação de Email Duplicado (Já existente no seu código)
+        if (email) {
+            const existingUser = await userRepository.findOne({
+                where: { email, id: Not(parseInt(id)) }
             });
+            if (existingUser) return res.status(400).json({ message: "Email já em uso!" });
+            user.email = email;
         }
 
-        const existingUser = await userRepository.findOne({
-            where: {
-                email: data.email,
-                id: Not(parseInt(id)),
+        // 2. Validação de Senha (se ela for enviada no corpo)
+        if (senha) {
+            const regexSenha = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{6,}$/;
+            if (!regexSenha.test(senha)) {
+                return res.status(400).json({
+                    message: "A nova senha não atende aos requisitos de segurança(min. seis catacteres; uma letra, um número e um caractere especial)!"
+                });
             }
-        });
-
-        if(existingUser) {
-            return res.status(400).json({
-                message: "Já existe um usuário cadastrado com esse email!"
-            });
+            // A senha será hasheada automaticamente pelo @BeforeInsert/@BeforeUpdate da Entity
+            user.senha = senha;
         }
 
-        userRepository.merge(user, data);
+        if (nome) user.nome = nome;
 
         const updatedUser = await userRepository.save(user);
 
-        res.status(200).json({
-        message: "Usuário editado com sucesso!",
-        user: updatedUser,
-            });
+        return res.status(200).json({
+            message: "Usuário atualizado com sucesso!",
+            user: { id: updatedUser.id, nome: updatedUser.nome, email: updatedUser.email }
+        });
 
     } catch (error) {
-            return res.status(500).json({
-            message: "Erro ao editar o usuário!"
-            });
-        }
-
+        return res.status(500).json({ message: "Erro ao editar!" });
+    }
 });
 
 //Rota para a deletar o usuário:

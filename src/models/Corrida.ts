@@ -11,27 +11,21 @@ export class Corrida {
     @PrimaryGeneratedColumn()
     id: number;
 
-    // Relacionamento com Motorista (Dono da FK motoristaId)
     @ManyToOne(() => Motorista, (motorista) => motorista.corridas)
     @JoinColumn({ name: "motoristaId" })
     motorista: Motorista;
 
-    // Relacionamento com Empresa (Dono da FK empresaId)
     @ManyToOne(() => Empresa, (empresa) => empresa.corridas, { onDelete: "SET NULL" })
     @JoinColumn({ name: "empresaId" })
     empresa: Empresa;
 
-    // Relacionamento com Funcionários (A FK corridaId está na tabela Funcionario)
     @ManyToMany(() => Funcionario, funcionario => funcionario.corridas)
     funcionarios: Funcionario[];
 
-    // Relacionamento com RotaIda (Dono da FK rotaIdaId)
-    // nullable: true permite que a corrida seja criada sem uma rota de ida inicial
     @OneToOne(() => RotaIda, (rotaIda) => rotaIda.corrida, { nullable: true })
     @JoinColumn({ name: "rotaIdaId" })
     rotaIda?: RotaIda;
 
-    // Relacionamento com RotaVolta (Dono da FK rotaVoltaId)
     @OneToOne(() => RotaVolta, (rotaVolta) => rotaVolta.corrida, { nullable: true })
     @JoinColumn({ name: "rotaVoltaId" })
     rotaVolta?: RotaVolta;
@@ -42,9 +36,6 @@ export class Corrida {
     @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP" })
     fimDaCorrida: Date;
 
-    // Construtor:
-    // 1. Parâmetros com "?" tornam a instanciação flexível para o TypeORM e para o programador.
-    // 2. Operador "!" (non-null assertion) para propriedades obrigatórias.
     constructor(
         id?: number,
         motorista?: Motorista,
