@@ -13,18 +13,20 @@ import { Funcionario } from "./models/Funcionario";
 import { Corrida } from "./models/Corrida";
 import { RotaIda } from "./models/RotaIda";
 import { RotaVolta } from "./models/RotaVolta";
+import { Solicitacao } from "./models/Solicitacao";
+import { Escala } from "./models/Escala";
 
 export const AppDataSource = new DataSource({
     type: "mysql",
     host: "localhost",
     port: 3306,
     username: "root",
-    password: "",
+    password: "123456",
     database: "plannerrotas",
     synchronize: true,
     logging: true,
     entities: [User, Pais, Estado, Cidade, Bairro, Logradouro, Motorista,
-    Carro, Empresa, Funcionario, Corrida, RotaIda, RotaVolta],
+    Carro, Empresa, Funcionario, Corrida, RotaIda, RotaVolta, Solicitacao, Escala],
 
     subscribers: [],
     migrations: [__dirname+"/migrations/*.js"],

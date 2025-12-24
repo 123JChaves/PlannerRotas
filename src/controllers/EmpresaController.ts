@@ -17,7 +17,8 @@ router.get("/empresa", async (req: Request, res: Response) => {
                 "logradouro.bairro",
                 "logradouro.bairro.cidade",
                 "logradouro.bairro.cidade.estado",
-                "logradouro.bairro.cidade.estado.pais"
+                "logradouro.bairro.cidade.estado.pais",
+                "funcionarios"
     ]
         });
         res.status(200).json(empresas);
@@ -37,7 +38,7 @@ router.get("/empresa/:id", async (req: Request, res: Response) => {
                         "logradouro.bairro",
                         "logradouro.bairro.cidade",
                         "logradouro.bairro.cidade.estado",
-                        "logradouro.bairro.cidade.estado.pais"
+                        "logradouro.bairro.cidade.estado.pais",
             ]
         });
 

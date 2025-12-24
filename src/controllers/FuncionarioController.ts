@@ -13,6 +13,7 @@ router.get("/funcionario", async (req: Request, res: Response) => {
         // Adicionado relations para você conseguir ver o endereço no EchoApi
        const funcionarios = await funcionarioRepository.find({
     relations: [
+                "empresa",
                 "logradouro",
                 "logradouro.bairro",
                 "logradouro.bairro.cidade",
@@ -33,7 +34,9 @@ router.get("/funcionario/:id", async (req: Request, res: Response) => {
         const funcionarioRepository = AppDataSource.getRepository(Funcionario);
         const funcionario = await funcionarioRepository.findOne({
             where: { id: parseInt(id) },
-            relations: ["logradouro",
+            relations: [
+                        "empresa",
+                        "logradouro",
                         "logradouro.bairro",
                         "logradouro.bairro.cidade",
                         "logradouro.bairro.cidade.estado",

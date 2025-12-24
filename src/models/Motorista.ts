@@ -1,4 +1,4 @@
-import { Column, Entity, JoinTable, ManyToMany, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 import { Carro } from "./Carro";
 import { Corrida } from "./Corrida";
 
@@ -22,6 +22,15 @@ export class Motorista {
     })
     carros?: Carro[];
 
+    @Column({ nullable: true })
+    carroAtualId?: number;
+
+
+    // Opcional: Criar uma relação ManyToOne para acessar os dados do carro atual facilmente
+    @ManyToOne(() => Carro)
+    @JoinColumn({ name: "carroAtualId" })
+    carroAtual?: Carro;
+
     @OneToMany(() => Corrida, (corrida) => corrida.motorista, {nullable: true})
     corridas?: Corrida[];
 
@@ -36,6 +45,8 @@ export class Motorista {
                 nome?: string,
                 cpf?: string,
                 carros?: Carro[],
+                carroAtualId?: number,
+                carroAtual?: Carro,
                 corridas?: Corrida[],
                 createDate?: Date,
                 updateDate?: Date) {
@@ -45,6 +56,8 @@ export class Motorista {
         if(carros) {
         this.carros = carros;
         }
+        this.carroAtualId = carroAtualId;
+        this.carroAtual = carroAtual;
         if(corridas) {
         this.corridas = corridas;
         }

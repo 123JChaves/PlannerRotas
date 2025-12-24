@@ -1,7 +1,8 @@
-import { Column, Entity, JoinColumn, ManyToMany, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn } from "typeorm";
 import { Motorista } from "./Motorista";
-import { Funcionario } from "./Funcionario";
 import { Empresa } from "./Empresa";
+import { Solicitacao } from "./Solicitacao";
+import { Funcionario } from "./Funcionario";
 import { RotaIda } from "./RotaIda";
 import { RotaVolta } from "./RotaVolta";
 
@@ -19,40 +20,48 @@ export class Corrida {
     @JoinColumn({ name: "empresaId" })
     empresa: Empresa;
 
+    // CORREÇÃO: OneToMany não usa JoinColumn e deve ser um array []
+    @OneToMany(() => Solicitacao, (solicitacao) => solicitacao.corrida)
+    solicitacoes: Solicitacao[]; 
+
     @ManyToMany(() => Funcionario, funcionario => funcionario.corridas)
+    @JoinTable({
+        name: "funcionario_corridas", // Nome exato da sua tabela no banco
+        joinColumn: { name: "corridaId", referencedColumnName: "id" },
+        inverseJoinColumn: { name: "funcionarioId", referencedColumnName: "id" }
+    })
     funcionarios: Funcionario[];
 
-    @OneToOne(() => RotaIda, (rotaIda) => rotaIda.corrida, { nullable: true })
+    @OneToOne(() => RotaIda, (rotaIda) => rotaIda.corrida, { nullable: true, cascade: true })
     @JoinColumn({ name: "rotaIdaId" })
-    rotaIda?: RotaIda;
+    rotaIda?: RotaIda | null;
 
-    @OneToOne(() => RotaVolta, (rotaVolta) => rotaVolta.corrida, { nullable: true })
+    @OneToOne(() => RotaVolta, (rotaVolta) => rotaVolta.corrida, { nullable: true, cascade: true })
     @JoinColumn({ name: "rotaVoltaId" })
-    rotaVolta?: RotaVolta;
+    rotaVolta?: RotaVolta | null;
 
     @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP" })
     inicioDaCorrida: Date;
 
-    @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP" })
-    fimDaCorrida: Date;
+    @Column({ type: "timestamp", nullable: true })
+    fimDaCorrida?: Date;
 
     constructor(
         id?: number,
         motorista?: Motorista,
         empresa?: Empresa,
+        solicitacoes?: Solicitacao[], // Alterado para array
         funcionarios?: Funcionario[],
-        inicioDaCorrida?: Date,
-        fimDaCorrida?: Date,
-        rotaIda?: RotaIda,
-        rotaVolta?: RotaVolta
+        rotaIda?: RotaIda | null,
+        rotaVolta?: RotaVolta | null
     ) {
         this.id = id!;
         this.motorista = motorista!;
         this.empresa = empresa!;
+        this.solicitacoes = solicitacoes!;
         this.funcionarios = funcionarios!;
-        this.inicioDaCorrida = inicioDaCorrida!;
-        this.fimDaCorrida = fimDaCorrida!;
         this.rotaIda = rotaIda;
         this.rotaVolta = rotaVolta;
+        this.inicioDaCorrida = new Date();
     }
 }

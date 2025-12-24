@@ -12,7 +12,7 @@ router.get("/motorista", async(req: Request, res: Response) => {
        const motoristaRepository = AppDataSource.getRepository(Motorista);
        
        const motoristas = await motoristaRepository.find({
-        relations: ["carros"],
+        relations: ["carroAtual","carros"],
        });
 
        res.status(200).json(motoristas);
@@ -30,7 +30,7 @@ router.get("/motorista/:id", async(req: Request, res: Response) => {
         const motoristaRepository = AppDataSource.getRepository(Motorista);
         const motorista = await motoristaRepository.findOne({
             where: {id: parseInt(id)},
-            relations: ["carros"],
+            relations: ["carroAtual","carros"],
         });
 
         if(!motorista) {
@@ -90,10 +90,10 @@ router.put("/motorista/:id", async (req: Request, res: Response) => {
         const motoristaRepository = AppDataSource.getRepository(Motorista);
         const carroRepository = AppDataSource.getRepository(Carro);
 
-        // 1. Busca o Motorista Original
+        // 1. Busca o Motorista Original (Adicionado 'carroAtual' nas relations)
         const motorista = await motoristaRepository.findOne({
             where: { id: motoristaId },
-            relations: ["carros"] // Carregamos os carros atuais para o merge funcionar bem
+            relations: ["carros", "carroAtual"] 
         });
 
         if (!motorista) {
@@ -105,7 +105,7 @@ router.put("/motorista/:id", async (req: Request, res: Response) => {
             const existingMotorista = await motoristaRepository.findOne({
                 where: {
                     cpf: data.cpf,
-                    id: Not(motoristaId),
+                    id: Not(motoristaId), // Garante que não é o próprio motorista
                 }
             });
             if (existingMotorista) {
@@ -119,7 +119,6 @@ router.put("/motorista/:id", async (req: Request, res: Response) => {
         if (data.carros && Array.isArray(data.carros)) {
             for (let i = 0; i < data.carros.length; i++) {
                 const c = data.carros[i];
-                // Se o carro enviado não tem ID, verificamos pela placa se ele já existe no sistema
                 if (!c.id && c.placa) {
                     const carroExistente = await carroRepository.findOneBy({ placa: c.placa });
                     if (carroExistente) {
@@ -130,8 +129,7 @@ router.put("/motorista/:id", async (req: Request, res: Response) => {
         }
 
         // 4. Merge e Save
-        // O TypeORM vai atualizar o motorista e, devido ao cascade,
-        // gerenciar a lista de carros.
+        // O merge processa 'nome', 'cpf', 'carros' e 'carroAtual'
         motoristaRepository.merge(motorista, data);
         const updateMotorista = await motoristaRepository.save(motorista);
 

@@ -22,11 +22,6 @@ export class Funcionario {
     logradouro: Logradouro;
 
     @ManyToMany(() => Corrida, (corrida) => corrida.funcionarios)
-    @JoinTable({ 
-        name: "funcionario_corridas",
-        joinColumn: { name: "funcionarioId", referencedColumnName: "id" },
-        inverseJoinColumn: { name: "corridaId", referencedColumnName: "id" }
-        })
     corridas?: Corrida[];
 
     @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP" })

@@ -24,6 +24,18 @@ app.use('/', MotoristaController);
 import CarroController from "./controllers/CarroController";
 app.use('/', CarroController);
 
+import CorridaController from "./controllers/CorridaController";
+app.use('/', CorridaController);
+
+import SolicitacaoController from "./controllers/SolicitacaoController";
+app.use('/', SolicitacaoController);
+
+import LogradouroController from "./controllers/LogradouroController";
+app.use('/', LogradouroController);
+
+import EscalaController from "./controllers/EscalaController";
+app.use('/', EscalaController);
+
 app.get("/", (req: Request, res: Response) => {
     res.send("Bem-vindo, Juliano");
 });
