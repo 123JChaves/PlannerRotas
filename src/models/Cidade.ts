@@ -1,8 +1,9 @@
-import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn, Unique } from "typeorm";
 import { Estado } from "./Estado";
 import { Bairro } from "./Bairro";
 
-@Entity('cidade')
+@Entity("cidade")
+@Unique(["nome", "estado"])
 export class Cidade {
 
     @PrimaryGeneratedColumn()
@@ -12,6 +13,7 @@ export class Cidade {
     nome: string;
 
     @ManyToOne(() => Estado, estado => estado.cidades, {cascade: true})
+    @JoinColumn({name: "estadoId"})
     estado: Estado;
 
     @OneToMany(() => Bairro, bairro => bairro.cidade)

@@ -5,6 +5,7 @@ import { Solicitacao } from "./Solicitacao";
 import { Funcionario } from "./Funcionario";
 import { RotaIda } from "./RotaIda";
 import { RotaVolta } from "./RotaVolta";
+import { Carro } from "./Carro";
 
 @Entity("corrida")
 export class Corrida {
@@ -16,17 +17,21 @@ export class Corrida {
     @JoinColumn({ name: "motoristaId" })
     motorista: Motorista;
 
+    // NOVO: Registro imutável do carro usado nesta corrida específica
+    @ManyToOne(() => Carro, {nullable: true})
+    @JoinColumn({ name: "carroId" })
+    carro?: Carro;
+
     @ManyToOne(() => Empresa, (empresa) => empresa.corridas, { onDelete: "SET NULL" })
     @JoinColumn({ name: "empresaId" })
     empresa: Empresa;
 
-    // CORREÇÃO: OneToMany não usa JoinColumn e deve ser um array []
     @OneToMany(() => Solicitacao, (solicitacao) => solicitacao.corrida)
-    solicitacoes: Solicitacao[]; 
+    solicitacoes: Solicitacao[];
 
     @ManyToMany(() => Funcionario, funcionario => funcionario.corridas)
     @JoinTable({
-        name: "funcionario_corridas", // Nome exato da sua tabela no banco
+        name: "funcionario_corridas",
         joinColumn: { name: "corridaId", referencedColumnName: "id" },
         inverseJoinColumn: { name: "funcionarioId", referencedColumnName: "id" }
     })
@@ -49,16 +54,18 @@ export class Corrida {
     constructor(
         id?: number,
         motorista?: Motorista,
+        carro?: Carro, // Adicionado ao constructor
         empresa?: Empresa,
-        solicitacoes?: Solicitacao[], // Alterado para array
+        solicitacoes?: Solicitacao[],
         funcionarios?: Funcionario[],
         rotaIda?: RotaIda | null,
         rotaVolta?: RotaVolta | null
     ) {
         this.id = id!;
         this.motorista = motorista!;
+        this.carro = carro;
         this.empresa = empresa!;
-        this.solicitacoes = solicitacoes!;
+        this.solicitacoes = solicitacoes!,
         this.funcionarios = funcionarios!;
         this.rotaIda = rotaIda;
         this.rotaVolta = rotaVolta;

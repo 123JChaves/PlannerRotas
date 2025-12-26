@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import "reflect-metadata";
 import { DataSource } from 'typeorm';
 import { User } from "./models/User";
@@ -25,8 +26,8 @@ export const AppDataSource = new DataSource({
     database: "plannerrotas",
     synchronize: true,
     logging: true,
-    entities: [User, Pais, Estado, Cidade, Bairro, Logradouro, Motorista,
-    Carro, Empresa, Funcionario, Corrida, RotaIda, RotaVolta, Solicitacao, Escala],
+    entities: [User, Pais, Estado, Cidade, Bairro, Logradouro, Motorista,Carro, Empresa, 
+        Funcionario, Corrida, RotaIda, RotaVolta, Solicitacao, Escala, Bairro, Estado, Pais],
 
     subscribers: [],
     migrations: [__dirname+"/migrations/*.js"],

@@ -1,7 +1,8 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany, Unique } from 'typeorm';
 import { Estado } from './Estado';
 
-@Entity()
+@Entity("pais")
+@Unique(["nome"]) 
 export class Pais {
     @PrimaryGeneratedColumn()
     id: number;

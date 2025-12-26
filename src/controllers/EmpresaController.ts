@@ -125,6 +125,14 @@ router.post("/empresa", async (req: Request, res: Response) => {
         });
     } catch (error) {
         console.error(error);
+
+        if ((<Error>error).message.includes("Duplicate entry")) {
+          return res.status(400).json({
+            message:
+              "Erro de duplicidade: Um dos elementos geográficos (Bairro, Cidade ou Estado) já existe ou o CNPJ está duplicado.",
+          });
+        }
+
         return res.status(500).json({ message: "Erro ao cadastrar a empresa!" });
     }
 });
@@ -209,7 +217,7 @@ router.delete("/empresa/:id", async (req: Request, res: Response) => {
             message: "Empresa deletada com sucesso!",
             empresaDeleted: empresa,
         });
-    } catch (error) {
+    } catch (error:any) {
         return res.status(500).json({ message: "Erro ao deletar a empresa!" });
     }
 });

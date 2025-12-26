@@ -33,6 +33,18 @@ app.use('/', SolicitacaoController);
 import LogradouroController from "./controllers/LogradouroController";
 app.use('/', LogradouroController);
 
+import BairroController from "./controllers/BairroController";
+app.use('/', BairroController);
+
+import CidadeController from "./controllers/CidadeController";
+app.use('/', CidadeController);
+
+import EstadoController from "./controllers/EstadoController";
+app.use('/', EstadoController);
+
+import PaisController from "./controllers/PaisController";
+app.use('/', PaisController);
+
 import EscalaController from "./controllers/EscalaController";
 app.use('/', EscalaController);
 

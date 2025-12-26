@@ -1,8 +1,9 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, Unique, JoinColumn } from 'typeorm';
 import { Pais } from './Pais';
 import { Cidade } from './Cidade';
 
-@Entity()
+@Entity("estado")
+@Unique(["nome", "pais"])
 export class Estado {
 
     @PrimaryGeneratedColumn()
@@ -15,6 +16,7 @@ export class Estado {
     pais: Pais;
 
     @OneToMany(() => Cidade, cidade => cidade.estado)
+    @JoinColumn({name: "paisId"})
     cidades?: Cidade[];
 
     constructor(id?: number,

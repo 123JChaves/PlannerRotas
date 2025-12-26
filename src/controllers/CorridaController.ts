@@ -8,6 +8,7 @@ import { Funcionario } from "../models/Funcionario";
 import { Solicitacao } from "../models/Solicitacao";
 import { Empresa } from "../models/Empresa";
 import { Escala } from "../models/Escala";
+import { Motorista } from "../models/Motorista";
 
 const router = express.Router();
 
@@ -23,12 +24,12 @@ router.get("/corrida", async (req: Request, res: Response) => {
         const [corridas, total] = await corridaRepository.findAndCount({
             where: empresaId ? { empresa: { id: Number(empresaId) } } : {},
             relations: [
-                "motorista", 
-                "motorista.carros", // Útil para saber qual carro foi usado
-                "empresa", 
-                "funcionarios", 
+                "motorista",
+                "carro", // Útil para saber qual carro foi usado
+                "empresa",
+                "funcionarios",
                 "funcionarios.logradouro", // Essencial para o mapa no front-end
-                "rotaIda", 
+                "rotaIda",
                 "rotaVolta"
             ],
             order: { inicioDaCorrida: "DESC" },
@@ -60,13 +61,13 @@ router.post("/corridas/processar-solicitacoes", async (req: Request, res: Respon
         await queryRunner.connect();
         await queryRunner.startTransaction();
 
-        // 1. Busca funcionários (seu código original)
+        // 1. Busca funcionários
         const funcionarios = await queryRunner.manager.getRepository(Funcionario).find({
             where: { id: In(funcionarioIds) },
             relations: ["logradouro"]
         });
 
-        // ... (Lógica de ordenação e grupos de 4 permanece igual) ...
+        // Lógica de ordenação por latitude
         const funcionariosComCoordenadas = funcionarios.filter(f => f.logradouro?.latitude != null);
         const funcionariosOrdenados = funcionariosComCoordenadas.sort((a, b) => Number(a.logradouro.latitude) - Number(b.logradouro.latitude));
         
@@ -81,14 +82,29 @@ router.post("/corridas/processar-solicitacoes", async (req: Request, res: Respon
             const grupo = gruposDeQuatro[index];
             const motoristaId = motoristaIds[index] || motoristaIds[0];
 
+            // --- NOVIDADE: Busca o motorista e seu carro atual para "congelar" na corrida ---
+            const motoristaData = await queryRunner.manager.getRepository(Motorista).findOne({
+                where: { id: motoristaId },
+                relations: ["carroAtual"]
+            });
+
+            if (!motoristaData) {
+                throw new Error(`Motorista com ID ${motoristaId} não encontrado.`);
+            }
+
+            if (!motoristaData.carroAtual) {
+                throw new Error(`O motorista ${motoristaData.nome} não possui um carro atual definido e não pode realizar a corrida.`);
+            }
+
             const novaCorrida = queryRunner.manager.getRepository(Corrida).create({
                 empresa: { id: empresaId },
                 motorista: { id: motoristaId },
+                carro: motoristaData.carroAtual, // Grava o carro atual de forma imutável na corrida
                 funcionarios: grupo,
                 inicioDaCorrida: new Date()
             });
 
-            // Criação da Rota (Seu código original)
+            // Criação da Rota
             if (tipoRota === "IDA") {
                 novaCorrida.rotaIda = await queryRunner.manager.save(RotaIda, {
                     funcionarios: grupo,
@@ -96,7 +112,6 @@ router.post("/corridas/processar-solicitacoes", async (req: Request, res: Respon
                     ordemDasParadas: grupo.map(f => f.id).join(",")
                 });
             } else {
-                // Adicionamos a VOLTA para consistência
                 novaCorrida.rotaVolta = await queryRunner.manager.save(RotaVolta, {
                     funcionarios: grupo,
                     empresa: { id: empresaId },
@@ -106,9 +121,7 @@ router.post("/corridas/processar-solicitacoes", async (req: Request, res: Respon
 
             const corridaFinal = await queryRunner.manager.save(novaCorrida);
 
-            // --- AQUI ESTÁ A "BAIXA AUTOMÁTICA" ---
-            // Se existirem solicitações pendentes para esses funcionários neste dia,
-            // nós as marcamos como processadas para que não fiquem "duplicadas".
+            // Baixa automática das solicitações
             const idsFuncs = grupo.map(f => f.id);
             await queryRunner.manager.update(Solicitacao,
                 { 
@@ -126,16 +139,16 @@ router.post("/corridas/processar-solicitacoes", async (req: Request, res: Respon
         }
 
         await queryRunner.commitTransaction();
-        return res.status(201).json({ message: "Corridas manuais geradas e solicitações baixadas.", corridas: resultados });
+        return res.status(201).json({ message: "Corridas geradas com registro imutável do carro.", corridas: resultados });
 
     } catch (error: any) {
         await queryRunner.rollbackTransaction();
+        console.error(error);
         return res.status(500).json({ message: error.message });
     } finally {
         await queryRunner.release();
     }
 });
-
 
 router.post("/solicitacoes/gerar-lote", async (req: Request, res: Response) => {
     try {
@@ -271,6 +284,35 @@ router.post("/corridas/processar-janela-solicitacoes", async (req: Request, res:
         return res.status(500).json({ message: error.message });
     } finally {
         await queryRunner.release();
+    }
+});
+
+router.delete("/corrida/:id", async (req:Request, res:Response) => {
+    try {
+        const {id} = req.params;
+        const corridaRepository = AppDataSource.getRepository(Corrida);
+
+        const corrida = await corridaRepository.findOne({
+            where: {id: parseInt(id)},
+        });
+
+        if(!corrida) {
+            return res.status(400).json({
+                message: "Registro de corrida não encontrado!"
+            });
+        }
+
+        await corridaRepository.remove(corrida);
+
+        return res.status(200).json({
+            message: "Registro de corrida removido com sucesso!"
+        });
+        
+    } catch (error:any) {
+        console.error(error)
+        return res.status(500).json({
+            message: "Erro ao deletar o registro da corrida!"
+        });
     }
 });
 

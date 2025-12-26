@@ -1,9 +1,10 @@
-import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn, Unique } from "typeorm";
 import { Bairro } from "./Bairro";
 import { Empresa } from "./Empresa";
 import { Funcionario } from "./Funcionario";
 
 @Entity("logradouro")
+@Unique(["nome", "numero", "bairro"])
 export class Logradouro {
 
     @PrimaryGeneratedColumn()
@@ -16,6 +17,7 @@ export class Logradouro {
     numero: number;
 
     @ManyToOne(() => Bairro, bairro => bairro.logradouros, {cascade: true})
+    @JoinColumn({ name: "bairroId" })
     bairro: Bairro;
 
     @Column({ type: "decimal", precision: 10, scale: 8, nullable: true })
