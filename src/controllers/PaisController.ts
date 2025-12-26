@@ -166,7 +166,7 @@ router.delete("/pais/:id", async (req: Request, res: Response) => {
             });
         }
 
-        await paisRepository.delete(pais);
+        await paisRepository.remove(pais);
 
         return res.status(200).json({
             message: "País deletado com sucesso!",
