@@ -10,7 +10,7 @@ const router = express.Router()
 router.get("/estado", async (req: Request, res: Response) => {
     try {
         const estadoRepository = AppDataSource.getRepository(Estado);
-        const estado = await estadoRepository.findOne({
+        const estado = await estadoRepository.find({
             relations: [
                 "pais"
             ],
