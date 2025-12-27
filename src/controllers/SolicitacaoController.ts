@@ -28,33 +28,23 @@ router.get("/solicitacoes", async (req: Request, res: Response) => {
 // Rota para gerar solicitações em lote (usando o método .save())
 router.post("/solicitacoes/gerar-lote", async (req: Request, res: Response) => {
     try {
-        // Recebe os dados da seleção feita no front-end
         const { empresaId, funcionarioIds, tipoRota, dataHoraAgendada } = req.body;
+        const solicitacaoRepository = AppDataSource.getRepository(Solicitacao);
 
-        // 1. Instancia o repositório
-        const solicitacaoRepo = AppDataSource.getRepository(Solicitacao);
-
-        // 2. Cria os objetos de solicitação baseados nos funcionários selecionados
-        const novasSolicitacoes = funcionarioIds.map((id: number) => {
-            return solicitacaoRepo.create({
+        const novasSolicitacoes = funcionarioIds.map((id: number) =>
+            solicitacaoRepository.create({
                 empresa: { id: empresaId },
                 funcionario: { id: id },
-                tipoRota: tipoRota, // "IDA" ou "VOLTA"
-                dataHoraAgendada: new Date(dataHoraAgendada), // Ex: 2025-12-24T03:00:00.000Z
-                processada: false // Define como pendente para o processador de corridas
-            });
-        });
+                tipoRota,
+                dataHoraAgendada: new Date(dataHoraAgendada),
+                processada: false
+            })
+        );
 
-        // 3. Salva no banco de dados
-        const salvas = await solicitacaoRepo.save(novasSolicitacoes);
-
-        return res.status(201).json({
-            message: `${salvas.length} solicitações criadas com sucesso.`,
-            solicitacoes: salvas
-        });
-
+        await solicitacaoRepository.save(novasSolicitacoes);
+        return res.status(201).json({ message: "Solicitações agendadas." });
     } catch (error: any) {
-        return res.status(500).json({ message: "Erro ao gerar solicitações: " + error.message });
+        return res.status(500).json({ message: error.message });
     }
 });
 

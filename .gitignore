@@ -33,7 +33,8 @@ Thumbs.db
 *.lock
 .env.lock 
 .ormconfig.json
-data-source.ts/
+data-source.ts
+mapbox-sdk.ts
 
 # Other
 coverage/

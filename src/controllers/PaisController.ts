@@ -26,7 +26,7 @@ router.get("/pais", async (req: Request, res: Response) => {
 router.get("/pais/:id", async (req: Request, res: Response) => {
     try {
         const {id} = req.params;
-        const paisRepository = AppDataSource.getMongoRepository(Pais);
+        const paisRepository = AppDataSource.getRepository(Pais);
 
         const pais = await paisRepository.findOne({
             where: {id: Number(id)}
