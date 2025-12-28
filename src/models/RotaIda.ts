@@ -18,7 +18,7 @@ export class RotaIda extends Rota {
     @Column({ type: "text", nullable: true })
     geoJsonRota?: string;
 
-    @OneToOne(() => Corrida, (corrida) => corrida.rotaIda)
+    @OneToOne(() => Corrida, corrida => corrida.rotaIda)
     corrida!: Corrida;
 
     constructor(

@@ -31,7 +31,7 @@ export class Motorista {
     @JoinColumn({ name: "carroAtualId" })
     carroAtual?: Carro;
 
-    @OneToMany(() => Corrida, (corrida) => corrida.motorista, {nullable: true})
+    @OneToMany(() => Corrida, corrida => corrida.motorista, {nullable: true})
     corridas?: Corrida[];
 
     @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP" })

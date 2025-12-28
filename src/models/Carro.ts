@@ -22,7 +22,7 @@ export class Carro{
     @Column({ unique: true })
     placa: string;
 
-    @ManyToMany(() => Motorista, (motorista) => motorista.carros, {nullable: true})
+    @ManyToMany(() => Motorista, motorista => motorista.carros, {nullable: true})
     motoristas?: Motorista[];
 
     constructor(id?: number,

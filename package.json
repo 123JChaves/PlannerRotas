@@ -12,7 +12,7 @@
     "com": "npx tsc"
   },
   "keywords": [],
-  "author": "",
+  "author": "Juliano Chaves Baptista",
   "license": "ISC",
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",

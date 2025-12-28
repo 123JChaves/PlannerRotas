@@ -13,7 +13,7 @@ export class Corrida {
     @PrimaryGeneratedColumn()
     id: number;
 
-    @ManyToOne(() => Motorista, (motorista) => motorista.corridas)
+    @ManyToOne(() => Motorista, motorista => motorista.corridas)
     @JoinColumn({ name: "motoristaId" })
     motorista: Motorista;
 
@@ -22,11 +22,11 @@ export class Corrida {
     @JoinColumn({ name: "carroId" })
     carro?: Carro;
 
-    @ManyToOne(() => Empresa, (empresa) => empresa.corridas, { onDelete: "SET NULL" })
+    @ManyToOne(() => Empresa, empresa => empresa.corridas, { onDelete: "SET NULL" })
     @JoinColumn({ name: "empresaId" })
     empresa: Empresa;
 
-    @OneToMany(() => Solicitacao, (solicitacao) => solicitacao.corrida)
+    @OneToMany(() => Solicitacao, solicitacao => solicitacao.corrida)
     solicitacoes: Solicitacao[];
 
     @ManyToMany(() => Funcionario, funcionario => funcionario.corridas)
@@ -37,11 +37,11 @@ export class Corrida {
     })
     funcionarios: Funcionario[];
 
-    @OneToOne(() => RotaIda, (rotaIda) => rotaIda.corrida, { nullable: true, cascade: true })
+    @OneToOne(() => RotaIda, rotaIda => rotaIda.corrida, { nullable: true, cascade: true })
     @JoinColumn({ name: "rotaIdaId" })
     rotaIda?: RotaIda | null;
 
-    @OneToOne(() => RotaVolta, (rotaVolta) => rotaVolta.corrida, { nullable: true, cascade: true })
+    @OneToOne(() => RotaVolta, rotaVolta => rotaVolta.corrida, { nullable: true, cascade: true })
     @JoinColumn({ name: "rotaVoltaId" })
     rotaVolta?: RotaVolta | null;
 
