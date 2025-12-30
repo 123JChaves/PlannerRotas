@@ -34,7 +34,8 @@ router.get("/empresa/:id", async (req: Request, res: Response) => {
         const empresaRepository = AppDataSource.getRepository(Empresa);
         const empresa = await empresaRepository.findOne({
             where: { id: parseInt(id) },
-            relations: ["logradouro",
+            relations: [
+                        "logradouro",
                         "logradouro.bairro",
                         "logradouro.bairro.cidade",
                         "logradouro.bairro.cidade.estado",
@@ -141,7 +142,7 @@ router.post("/empresa", async (req: Request, res: Response) => {
 router.put("/empresa/:id", async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const data = req.body;
+        const { cnpj, ...data } = req.body;
         const empresaId = parseInt(id);
         const empresaRepository = AppDataSource.getRepository(Empresa);
         const logradouroRepository = AppDataSource.getRepository(Logradouro);
@@ -153,21 +154,7 @@ router.put("/empresa/:id", async (req: Request, res: Response) => {
             return res.status(404).json({ message: "Empresa não encontrada!" });
         }
 
-        // 2. Validação de Duplicidade de CNPJ
-        if (data.cnpj) {
-            const existingEmpresa = await empresaRepository.findOne({
-                where: {
-                    cnpj: data.cnpj,
-                    id: Not(empresaId),
-                }
-            });
-
-            if (existingEmpresa) {
-                return res.status(400).json({ message: "Já existe outra empresa cadastrada com este CNPJ!" });
-            }
-        }
-
-        // 3. Validação de Endereço Existente na Edição
+        // 2. Validação de Endereço Existente na Edição
         if (data.logradouro && !data.logradouro.id) {
             const logradouroExistente = await logradouroRepository.findOne({
                 where: {
@@ -182,7 +169,7 @@ router.put("/empresa/:id", async (req: Request, res: Response) => {
             }
         }
 
-        // 4. O método merge serve para mesclar os novos dados que chegaram na requisição (data)
+        // 3. O método merge serve para mesclar os novos dados que chegaram na requisição (data)
         // dentro da entidade que você já buscou do banco (empresa).
 
         empresaRepository.merge(empresa, data);

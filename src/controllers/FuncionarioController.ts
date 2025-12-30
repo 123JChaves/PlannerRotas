@@ -3,6 +3,7 @@ import { Not } from "typeorm";
 import { AppDataSource } from "../data-source";
 import { Funcionario } from "../models/Funcionario";
 import { Logradouro } from "../models/Logradouro";
+import { Empresa } from "../models/Empresa";
 
 const router = express.Router();
 
@@ -76,6 +77,61 @@ router.get("/funcionario/empresa/:empresaId", async (req: Request, res: Response
         return res.status(200).json(funcionarios);
     } catch (error) {
         return res.status(500).json({ message: "Erro ao buscar funcionários da empresa." });
+    }
+});
+
+// Rota para cadastrar funcionário no contexto da existência de uma empresa,
+// garantindo a existência do funcionário como uma existência somente vinculada
+// a uma empresa:
+router.post("/empresa/:empresaId/funcionario", async (req: Request, res: Response) => {
+    try {
+        const { empresaId } = req.params;
+        const data = req.body;
+        
+        const funcionarioRepository = AppDataSource.getRepository(Funcionario);
+        const empresaRepository = AppDataSource.getRepository(Empresa);
+
+        // 1. Verificar se a empresa informada na URL realmente existe
+        const empresa = await empresaRepository.findOneBy({ id: Number(empresaId) });
+        if (!empresa) {
+            return res.status(404).json({ message: "Empresa não encontrada!" });
+        }
+
+        // 2. Validar CPF:
+        if (!data.cpf) return res.status(400).json({ message: "CPF é obrigatório!" });
+        
+        const existingFunc = await funcionarioRepository.findOneBy({ cpf: data.cpf });
+        if (existingFunc) return res.status(400).json({ message: "CPF já cadastrado!" });
+
+        // 3. Normalização simples
+        // Se vier apenas o ID, o TypeORM já entende. 
+        // Se vier o objeto sem ID, precisamos garantir que o logradouro existe.
+        if (data.logradouro && !data.logradouro.id) {
+            const logradouroRepository = AppDataSource.getRepository(Logradouro);
+            const logExistente = await logradouroRepository.findOne({
+                where: {
+                    nome: data.logradouro.nome,
+                    numero: data.logradouro.numero
+                }
+            });
+            if (logExistente) data.logradouro = { id: logExistente.id };
+        }
+
+        // 4. Vincular a Empresa ao payload
+        // Aqui injetamos a empresa encontrada para que o TypeORM crie a relação
+        const newFuncionario = funcionarioRepository.create({
+            ...data,
+            empresa: empresa // O TypeORM fará a associação automática pelo ID
+        });
+
+        const funcionario = await funcionarioRepository.save(newFuncionario);
+
+        return res.status(201).json({
+            message: "Funcionário cadastrado e vinculado à empresa com sucesso!",
+            funcionarioSave: funcionario
+        });
+    } catch (error: any) {
+        return res.status(500).json({ message: "Erro interno", error: error.message });
     }
 });
 

@@ -17,7 +17,7 @@ router.get("/bairro", async (req: Request, res: Response) => {
                 "cidade.estado.pais"
             ],
         });
-        return res.status(200).json({bairro});
+        return res.status(200).json(bairro);
 
     } catch (error:any) {
         console.error(error);

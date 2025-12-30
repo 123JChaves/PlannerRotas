@@ -81,6 +81,24 @@ router.post("/motorista", async(req: Request, res: Response) => {
     }
 });
 
+router.patch("/motorista/:id/definir-carro", async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params; // ID do Motorista
+        const { carroId } = req.body; // ID do Carro selecionado
+
+        const motoristaRepo = AppDataSource.getRepository(Motorista);
+
+        // 1. Atualiza apenas o campo carroAtualId
+        await motoristaRepo.update(id, { 
+            carroAtualId: carroId 
+        });
+
+        return res.status(200).json({ message: "Veículo atualizado com sucesso!" });
+    } catch (error) {
+        return res.status(500).json({ message: "Erro ao definir veículo atual" });
+    }
+});
+
 // Rota para editar os motoristas:
 router.put("/motorista/:id", async (req: Request, res: Response) => {
     try {

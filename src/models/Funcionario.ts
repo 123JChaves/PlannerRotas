@@ -15,7 +15,7 @@ export class Funcionario {
     @Column({unique: true})
     cpf: string;
 
-    @ManyToOne(() => Empresa, empresa => empresa.funcionarios, { onDelete: "SET NULL" })
+    @ManyToOne(() => Empresa, empresa => empresa.funcionarios, { onDelete: "SET NULL", eager: true })
     empresa: Empresa;
 
     @ManyToOne(() => Logradouro, logradouro => logradouro.funcionarios, {cascade: true})
