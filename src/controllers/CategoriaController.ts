@@ -5,7 +5,7 @@ import { Not } from "typeorm";
 
 const router = express.Router();
 
-//Rota para recuperar todas as categorias
+//Rota para recuperar todas as categorias:
 router.get("/categoria", async (req: Request, res: Response) => {
     try {
         const categoriaRepository = AppDataSource.getRepository(Categoria)
@@ -20,7 +20,7 @@ router.get("/categoria", async (req: Request, res: Response) => {
     };
 });
 
-//Rota para recuperar a categoria por id
+//Rota para recuperar a categoria por id:
 router.get("/categoria/id", async (req: Request, res: Response) => {
     try {
         const {id} = req.params;
@@ -43,6 +43,7 @@ router.get("/categoria/id", async (req: Request, res: Response) => {
     };
 });
 
+//Rota para criar a categoria:
 router.post("/categoria", async (req: Request, res: Response) => {
     try {
         const data = req.body;
@@ -73,6 +74,7 @@ router.post("/categoria", async (req: Request, res: Response) => {
     };
 });
 
+//Rota para editar a categoria:
 router.put("/categoria/:id", async (req: Request, res: Response) => {
     try {
         const {id} = req.params;
@@ -127,6 +129,7 @@ router.put("/categoria/:id", async (req: Request, res: Response) => {
     }
 });
 
+//Rota para deletar a categoria:
 router.delete("/categoria/:id", async (req: Request, res: Response) => {
     try {
         const {id} = req.params;
