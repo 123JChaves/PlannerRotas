@@ -48,6 +48,9 @@ app.use('/', PaisController);
 import EscalaController from "./controllers/EscalaController";
 app.use('/', EscalaController);
 
+import CategoriaController from "./controllers/CategoriaController";
+app.use('/', CategoriaController);
+
 app.get("/", (req: Request, res: Response) => {
     res.send("Bem-vindo, Juliano");
 });

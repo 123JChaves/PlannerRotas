@@ -62,7 +62,7 @@ router.post("/carro", async(req: Request, res: Response) => {
         const data = req.body;
         const carroRepository = AppDataSource.getRepository(Carro);
 
-        // 1. Validar placa
+        // 1. Verificação no banco da placa para a validação do cadastro do carro
         const existingCarro = await carroRepository.findOne({
             where: { placa: data.placa },
         });

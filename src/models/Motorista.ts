@@ -25,7 +25,6 @@ export class Motorista {
     @Column({ nullable: true })
     carroAtualId?: number;
 
-
     // Opcional: Criar uma relação ManyToOne para acessar os dados do carro atual facilmente
     @ManyToOne(() => Carro)
     @JoinColumn({ name: "carroAtualId" })

@@ -16,6 +16,7 @@ import { RotaIda } from "./models/RotaIda";
 import { RotaVolta } from "./models/RotaVolta";
 import { Solicitacao } from "./models/Solicitacao";
 import { Escala } from "./models/Escala";
+import { Categoria } from './models/Categoria';
 
 export const AppDataSource = new DataSource({
     type: "mysql",
@@ -26,7 +27,7 @@ export const AppDataSource = new DataSource({
     database: "plannerrotas",
     synchronize: true,
     logging: true,
-    entities: [User, Pais, Estado, Cidade, Bairro, Logradouro, Motorista,Carro, Empresa, 
+    entities: [User, Pais, Estado, Cidade, Bairro, Logradouro, Motorista,Carro, Categoria, Empresa, 
         Funcionario, Corrida, RotaIda, RotaVolta, Solicitacao, Escala, Bairro, Estado, Pais],
 
     subscribers: [],
