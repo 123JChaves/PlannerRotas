@@ -21,7 +21,7 @@ router.get("/categoria", async (req: Request, res: Response) => {
 });
 
 //Rota para recuperar a categoria por id:
-router.get("/categoria/id", async (req: Request, res: Response) => {
+router.get("/categoria/:id", async (req: Request, res: Response) => {
     try {
         const {id} = req.params;
         const categoriaRepository = AppDataSource.getRepository(Categoria)
@@ -49,7 +49,7 @@ router.post("/categoria", async (req: Request, res: Response) => {
         const data = req.body;
         const categoriaRepository = AppDataSource.getRepository(Categoria);
 
-        const existingCategoria = await categoriaRepository.find({
+        const existingCategoria = await categoriaRepository.findOne({
             where: {categoria: data.categoria},
         });
 

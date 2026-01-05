@@ -81,6 +81,7 @@ router.post("/motorista", async(req: Request, res: Response) => {
     }
 });
 
+// Rota para definir o carro atual para o motorista:
 router.patch("/motorista/:id/definir-carro", async (req: Request, res: Response) => {
     try {
         const { id } = req.params; // ID do Motorista
@@ -96,6 +97,39 @@ router.patch("/motorista/:id/definir-carro", async (req: Request, res: Response)
         return res.status(200).json({ message: "Veículo atualizado com sucesso!" });
     } catch (error) {
         return res.status(500).json({ message: "Erro ao definir veículo atual" });
+    }
+});
+
+// Rota para criar um vínculo com um carro já existente:
+router.patch("/motorista/:id/vincular-frota", async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params; // ID do Motorista
+        const { carroId } = req.body; // ID do Carro já existente no sistema
+
+        const motoristaRepository = AppDataSource.getRepository(Motorista);
+        const carroRepository = AppDataSource.getRepository(Carro);
+
+        // 1. Busca o motorista carregando a frota atual (necessário para ManyToMany)
+        const motorista = await motoristaRepository.findOne({
+            where: { id: Number(id) },
+            relations: ["carros"]
+        });
+
+        if (!motorista) return res.status(404).json({ message: "Motorista não encontrado" });
+
+        // 2. Busca o carro que será adicionado
+        const carro = await carroRepository.findOne({ where: { id: Number(carroId) } });
+        if (!carro) return res.status(404).json({ message: "Carro não encontrado" });
+
+        // 3. Adiciona o novo carro ao array existente
+        // O TypeORM identifica que é uma relação ManyToMany e atualiza a tabela intermediária
+        motorista.carros = [...(motorista.carros || []), carro];
+
+        await motoristaRepository.save(motorista);
+
+        return res.status(200).json({ message: "Carro adicionado à frota com sucesso!" });
+    } catch (error) {
+        return res.status(500).json({ message: "Erro ao atualizar frota do motorista" });
     }
 });
 
@@ -182,6 +216,37 @@ router.delete("/motorista/:id", async(req: Request, res: Response) => {
         return res.status(500).json({message: "Erro ao deletar motorista!"});
     }
 
+});
+
+// Rota para destruir o vínculo com um carro específico:
+router.delete("/motorista/:id/desvincular-frota/:carroId", async (req: Request, res: Response) => {
+    try {
+        const { id, carroId } = req.params;
+
+        const motoristaRepo = AppDataSource.getRepository(Motorista);
+
+        // 1. Busca o motorista com a frota carregada
+        const motorista = await motoristaRepo.findOne({
+            where: { id: Number(id) },
+            relations: ["carros"]
+        });
+
+        if (!motorista) return res.status(404).json({ message: "Motorista não encontrado" });
+
+        // 2. Filtra o array para REMOVER o carro específico
+        motorista.carros = motorista.carros?.filter(c => c.id !== Number(carroId));
+
+        // 3. Regra de Negócio: Se o carro removido da frota for o que ele está usando agora, limpa o uso
+        if (motorista.carroAtualId === Number(carroId)) {
+            motorista.carroAtualId = null;
+        }
+
+        await motoristaRepo.save(motorista);
+
+        return res.status(200).json({ message: "Vínculo removido com sucesso!" });
+    } catch (error) {
+        return res.status(500).json({ message: "Erro ao destruir vínculo" });
+    }
 });
 
 export default router;

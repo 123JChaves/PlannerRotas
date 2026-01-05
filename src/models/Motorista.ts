@@ -14,21 +14,21 @@ export class Motorista {
     @Column({unique: true})
     cpf: string;
 
-    @ManyToMany(() => Carro, carro => carro.motoristas, { cascade: true, eager: true })
+    @ManyToMany(() => Carro, carro => carro.motoristas, { cascade: true, eager: true, nullable: true })
     @JoinTable({
         name: "motorista_carros", // Nome da tabela intermediária
         joinColumn: { name: "motoristaId", referencedColumnName: "id" },
         inverseJoinColumn: { name: "carroId", referencedColumnName: "id" }
     })
-    carros?: Carro[];
+    carros?: Carro[] | null;
 
     @Column({ nullable: true })
-    carroAtualId?: number;
+    carroAtualId?: number | null;
 
     // Opcional: Criar uma relação ManyToOne para acessar os dados do carro atual facilmente
-    @ManyToOne(() => Carro)
+    @ManyToOne(() => Carro, {eager: true, nullable: true})
     @JoinColumn({ name: "carroAtualId" })
-    carroAtual?: Carro;
+    carroAtual?: Carro | null;
 
     @OneToMany(() => Corrida, corrida => corrida.motorista, {nullable: true})
     corridas?: Corrida[];
@@ -43,9 +43,9 @@ export class Motorista {
     constructor(id?: number,
                 nome?: string,
                 cpf?: string,
-                carros?: Carro[],
-                carroAtualId?: number,
-                carroAtual?: Carro,
+                carros?: Carro[] | null,
+                carroAtualId?: number | null,
+                carroAtual?: Carro | null,
                 corridas?: Corrida[],
                 createDate?: Date,
                 updateDate?: Date) {

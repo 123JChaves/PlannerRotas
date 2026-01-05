@@ -1,4 +1,4 @@
-import { Column, Entity, JoinColumn, JoinTable, ManyToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, JoinTable, ManyToMany, PrimaryGeneratedColumn } from "typeorm";
 import { Motorista } from "./Motorista";
 import { Categoria } from "./Categoria";
 
@@ -23,7 +23,7 @@ export class Carro{
     @Column({ unique: true })
     placa: string;
 
-    @ManyToMany(() => Categoria, (categoria) => categoria.carros)
+    @ManyToMany(() => Categoria, (categoria) => categoria.carros, {eager: true})
     @JoinTable({
         name: "carro_categorias_categoria", // Tabela intermediária
         joinColumn: { name: "carroId", referencedColumnName: "id" },
@@ -34,6 +34,13 @@ export class Carro{
     @ManyToMany(() => Motorista, motorista => motorista.carros, {nullable: true})
     motoristas?: Motorista[];
 
+    @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP" })
+    createDate?: Date;
+
+    @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP",
+    onUpdate: "CURRENT_TIMESTAMP" })
+    updateDate?: Date;
+
     constructor(id?: number,
                 marca?: string,
                 modelo?: string,
@@ -41,7 +48,9 @@ export class Carro{
                 cor?:string,
                 placa?: string,
                 categorias?: Categoria[],
-                motoristas?: Motorista[]) {
+                motoristas?: Motorista[],
+                createDate?: Date,
+                updateDate?: Date) {
         this.id = id!;
         this.marca = marca!;
         this.modelo = modelo!;
@@ -54,6 +63,8 @@ export class Carro{
         if(motoristas) {
             this.motoristas = motoristas;
         }
+        this.createDate = createDate;
+        this.updateDate = updateDate;
     }
 
 }

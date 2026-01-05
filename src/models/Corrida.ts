@@ -54,7 +54,7 @@ export class Corrida {
     constructor(
         id?: number,
         motorista?: Motorista,
-        carro?: Carro, // Adicionado ao constructor
+        carro?: Carro,
         empresa?: Empresa,
         solicitacoes?: Solicitacao[],
         funcionarios?: Funcionario[],
