@@ -6,7 +6,7 @@ import { Cidade } from "../models/Cidade";
 
 const router = express.Router();
 
-// Listar toos os bairros:
+//Rota para listar toos os bairros:
 router.get("/bairro", async (req: Request, res: Response) => {
     try {
         const bairroRepository = AppDataSource.getRepository(Bairro);
@@ -25,7 +25,7 @@ router.get("/bairro", async (req: Request, res: Response) => {
     }
 });
 
-// Listar bairros por ID:
+//Rota para listar bairros por ID:
 router.get("/bairro/:id", async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
@@ -45,39 +45,32 @@ router.get("/bairro/:id", async (req: Request, res: Response) => {
     }
 });
 
-//Cadastrar bairro:
+//Rota para cadastrar bairro:
 router.post("/bairro", async (req: Request, res: Response) => {
     try {
         const data = req.body;
         const bairroRepository = AppDataSource.getRepository(Bairro);
         const cidadeRepository = AppDataSource.getRepository(Cidade);
 
-        // 1. Validação básica de entrada
         if (!data.nome || !data.cidade) {
             return res.status(400).json({ 
                 message: "O nome do bairro e os dados da cidade são obrigatórios." 
             });
         }
 
-        // 2. Lógica "Buscar ou Criar" para a Cidade
-        // Se não foi enviado ID, mas foi enviado NOME, tentamos achar a cidade no banco
         if (data.cidade && !data.cidade.id && data.cidade.nome) {
             const cidadeExistente = await cidadeRepository.findOne({
                 where: {
                     nome: data.cidade.nome,
-                    // Opcional: Se quiser ser ainda mais preciso, busque pelo nome do estado também
                     estado: { nome: data.cidade.estado?.nome }
                 }
             });
 
             if (cidadeExistente) {
-                // Se a cidade já existe, substituímos o objeto pelo ID dela
                 data.cidade = { id: cidadeExistente.id };
             }
         }
 
-        // 3. Verifica se o Bairro já existe dentro da Cidade (agora que já resolvemos a cidade)
-        // Isso evita o erro de duplicidade (Unique Constraint)
         const bairroExistente = await bairroRepository.findOne({
             where: {
                 nome: data.nome,

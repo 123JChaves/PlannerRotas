@@ -214,7 +214,9 @@ router.delete("/empresa/:id", async (req: Request, res: Response) => {
         const empresa = await empresaRepository.findOneBy({ id: parseInt(id) });
 
         if (!empresa) {
-            return res.status(404).json({ message: "Empresa não encontrada!" });
+            return res.status(404).json({ 
+                message: "Empresa não encontrada!" 
+            });
         }
 
         await empresaRepository.remove(empresa);
@@ -224,7 +226,9 @@ router.delete("/empresa/:id", async (req: Request, res: Response) => {
             empresaDeleted: empresa,
         });
     } catch (error:any) {
-        return res.status(500).json({ message: "Erro ao deletar a empresa!" });
+        return res.status(500).json({ 
+            message: "Erro ao deletar a empresa!" 
+        });
     }
 });
 

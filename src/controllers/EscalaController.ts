@@ -107,7 +107,7 @@ router.post("/escalas/gerar-dia", async (req: Request, res: Response) => {
     }
 });
 
-//Rta para a edição parcial da escala:
+//Rota para a edição parcial da escala:
 router.patch("/escala/:id", async (req: Request, res: Response) => {
     try {
         const { id } = req.params;

@@ -147,7 +147,6 @@ router.put("/carro/:id", async(req: Request, res: Response) => {
     const carroId = parseInt(id);
     const carroRepository = AppDataSource.getRepository(Carro);
     
-    // 1. Busca pelo carro original através do id:
     const carro = await carroRepository.findOne({
         where: {id: carroId}
     });
