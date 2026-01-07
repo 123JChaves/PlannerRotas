@@ -18,7 +18,8 @@ router.get("/empresa", async (req: Request, res: Response) => {
                 "logradouro.bairro.cidade",
                 "logradouro.bairro.cidade.estado",
                 "logradouro.bairro.cidade.estado.pais",
-                "funcionarios"
+                "funcionarios",
+                "funcionarios.pessoa"
     ]
         });
         res.status(200).json(empresas);
@@ -56,18 +57,25 @@ router.get("/empresa/:id", async (req: Request, res: Response) => {
 router.get("/empresa/:id/funcionario", async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
+        
+        // Validar se o ID é um número
+        const empresaId = parseInt(id);
+        if (isNaN(empresaId)) {
+            return res.status(400).json({ message: "ID da empresa inválido!" });
+        }
+
         const empresaRepository = AppDataSource.getRepository(Empresa);
 
-        // Buscamos a empresa e trazemos a lista de funcionários vinculada
         const empresaComFuncionarios = await empresaRepository.findOne({
-            where: { id: parseInt(id) },
+            where: { id: empresaId },
             relations: [
-                "funcionarios", // Traz a lista de funcionários
-                "funcionarios.logradouro", // Traz o endereço do funcionário
-                "funcionarios.logradouro.bairro", //Traz o bairro do funcionário
-                "funcionarios.logradouro.bairro.cidade", //Traz a cidade do funcionário
-                "funcionarios.logradouro.bairro.cidade.estado", //Traz o estado do funcionário
-                "funcionarios.logradouro.bairro.cidade.estado.pais" //Traz o país do funcionário
+                "funcionarios",
+                "funcionarios.pessoa",
+                "funcionarios.logradouro",
+                "funcionarios.logradouro.bairro",
+                "funcionarios.logradouro.bairro.cidade",
+                "funcionarios.logradouro.bairro.cidade.estado",
+                "funcionarios.logradouro.bairro.cidade.estado.pais"
             ]
         });
 
@@ -75,12 +83,23 @@ router.get("/empresa/:id/funcionario", async (req: Request, res: Response) => {
             return res.status(404).json({ message: "Empresa não encontrada!" });
         }
 
-        // Retornamos apenas a lista de funcionários daquela empresa
-        return res.status(200).json(empresaComFuncionarios.funcionarios);
+        // Mapeamento seguro usando Optional Chaining e Fallbacks
+        const funcionariosFormatados = (empresaComFuncionarios.funcionarios || []).map(f => ({
+            id: f.id,
+            nome: f.pessoa?.nome || "Sem Nome", // Evita erro se pessoa for null
+            cpf: f.pessoa?.cpf || "Sem CPF",
+            logradouro: f.logradouro || null,
+            createDate: f.createDate
+        }));
+
+        return res.status(200).json(funcionariosFormatados);
 
     } catch (error: any) {
-        console.error("Erro ao listar funcionários da empresa:", error);
-        return res.status(500).json({ message: "Erro ao listar os funcionários da empresa!" });
+        console.error("ERRO CRÍTICO NO SERVIDOR:", error.message);
+        return res.status(500).json({ 
+            message: "Erro ao buscar funcionários no servidor.",
+            error: error.message 
+        });
     }
 });
 

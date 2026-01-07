@@ -19,8 +19,7 @@ router.get("/carro", async(req: Request, res: Response) => {
 
 })
 
-// Rota para a verificação de placa: 
-
+// Rota para a verificação de placa:
 router.get("/carro/verificar/:placa", async (req: Request, res: Response) => {
     const { placa } = req.params;
     const carroRepository = AppDataSource.getRepository(Carro);
@@ -47,15 +46,16 @@ router.get("/carro/motoristas", async(req: Request, res: Response) => {
         const carros = await carroRepository.find({
             relations: [
                 "motoristas",
+                "motoristas.pessoa", // ESSENCIAL: Carrega nome e cpf do motorista
+                "categorias"
             ],
         });
-        return res.status(200).json({carros});
+        return res.status(200).json({ carros }); // Mantém o padrão de resposta que seu Frontend espera
 
-    } catch (error:any) {
+    } catch (error: any) {
         console.error(error);
-        return res.status(500).json({message: "Erro ao listar os carros"});
+        return res.status(500).json({ message: "Erro ao listar os carros" });
     }
-
 });
 
 // Rota para visualizar os carros cadastrados por ID:
@@ -65,7 +65,7 @@ router.get("/carro/:id", async(req: Request, res: Response) => {
         const carroRepository = AppDataSource.getRepository(Carro);
         const carro = await carroRepository.findOne({
             where: {id: parseInt(id)},
-            relations: ["motoristas"]
+            relations: ["motoristas", "motoristas.pessoa"]
         });
         if(!carro) {
             return res.status(404).json({message: "Carro não encontrado!"});
@@ -181,7 +181,6 @@ router.put("/carro/:id", async(req: Request, res: Response) => {
     }
 
 });
-
 
 //Rota para atualização parcial do carro:
 router.patch("/carro/:id", async (req: Request, res: Response) => {

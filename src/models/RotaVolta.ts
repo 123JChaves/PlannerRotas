@@ -27,7 +27,7 @@ export class RotaVolta  extends Rota{
         geoJsonRota?: string, 
         empresa?: Empresa, 
         funcionarios?: Funcionario[], 
-        corrida?: Corrida
+        corrida?: Corrida,
     ) {
         // Como Rota é abstrata, passamos os dados para o super dela
         super(funcionarios || [], empresa!); 

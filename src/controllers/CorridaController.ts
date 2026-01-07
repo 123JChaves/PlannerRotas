@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import mbxOptimization from '@mapbox/mapbox-sdk/services/optimization';
 import express, { Request, Response } from "express";
-import { Between, In, IsNull, Not } from "typeorm";
+import { Between, FindOptionsWhere, In, IsNull, Not } from "typeorm";
 import { AppDataSource } from "../data-source";
 import { Corrida } from "../models/Corrida";
 import { RotaIda } from "../models/RotaIda";
@@ -27,64 +27,99 @@ router.get("/corrida", async (req: Request, res: Response) => {
     try {
         const corridaRepository = AppDataSource.getRepository(Corrida);
         
-        const { empresaId, pagina, limite, dataInicio, dataFim } = req.query;
+        // Destruturação com tipos e valores padrão
+        const { empresaId, pagina, limite, dataInicio, dataFim, motoristaId } = req.query;
         
-        const page = parseInt(pagina as string) || 1;
-        const limit = parseInt(limite as string) || 10;
+        const page = Math.max(1, parseInt(pagina as string) || 1);
+        const limit = Math.min(100, parseInt(limite as string) || 10); // Cap de 100 para segurança
         const skip = (page - 1) * limit;
 
-        const whereCondition: any = {};
+        // Construção dinâmica e tipada do filtro
+        const whereCondition: FindOptionsWhere<Corrida> = {};
 
         if (empresaId) {
             whereCondition.empresa = { id: Number(empresaId) };
         }
 
-        if (dataInicio && dataFim) {
-            whereCondition.inicioDaCorrida = Between(
-                new Date(dataInicio as string), 
-                new Date(dataFim as string)
-            );
+        if (motoristaId) {
+            whereCondition.motorista = { id: Number(motoristaId) };
         }
 
-        // 3. Execução da busca sem o bloco 'select' manual para evitar conflito de nomes de colunas
+        if (dataInicio && dataFim) {
+            // Ajuste para cobrir o dia inteiro (de 00:00:00 a 23:59:59)
+            const inicio = new Date(dataInicio as string);
+            const fim = new Date(dataFim as string);
+            if (!isNaN(inicio.getTime()) && !isNaN(fim.getTime())) {
+                whereCondition.inicioDaCorrida = Between(inicio, fim);
+            }
+        }
+
         const [corridas, total] = await corridaRepository.findAndCount({
             where: whereCondition,
-            relations: [
-                "motorista",
-                "carro",
-                "empresa",
-                "funcionarios",
-                "funcionarios.logradouro",
-                "rotaIda",
-                "rotaVolta"
-            ],
+            relations: {
+                motorista: { pessoa: true },
+                carro: true,
+                empresa: true,
+                funcionarios: { pessoa: true, logradouro: true },
+                rotaIda: true,
+                rotaVolta: true
+            },
             order: { inicioDaCorrida: "DESC" },
             take: limit,
             skip: skip
         });
 
-        // 4. Resposta formatada
+        // Formatação eficiente
+        const dadosFormatados = corridas.map(corrida => {
+            // Helper para parse seguro de JSON
+            const safeParse = (jsonStr?: string | null) => {
+                if (!jsonStr) return null;
+                try { return JSON.parse(jsonStr); } catch { return null; }
+            };
+
+            return {
+                id: corrida.id,
+                data: {
+                    inicio: corrida.inicioDaCorrida,
+                    fim: corrida.fimDaCorrida || "Em andamento"
+                },
+                // Prioriza dados vivos, mas exibe log histórico se motorista/veículo foram alterados/deletados
+                atribuicao: {
+                    motorista: corrida.motorista?.pessoa?.nome || "Motorista não disponível",
+                    carro: corrida.carro?.placa || "Veículo não disponível",
+                    empresa: corrida.empresa?.nome || "N/A"
+                },
+                passageiros: {
+                    lista: corrida.funcionarios?.map(f => f.pessoa?.nome) || [],
+                    total: corrida.funcionarios?.length || 0
+                },
+                // Snapshot guardado no momento da criação da corrida (Auditoria)
+                logHistorico: corrida.logNomesParticipantes,
+                logistica: {
+                    tipo: corrida.rotaIda ? "IDA" : "VOLTA",
+                    geoJson: safeParse(corrida.rotaIda?.geoJsonRota || corrida.rotaVolta?.geoJsonRota),
+                    ordemParadas: corrida.rotaIda?.ordemDasParadas || corrida.rotaVolta?.ordemDasParadas
+                }
+            };
+        });
+
         return res.status(200).json({
-            status: "success",
-            dados: corridas.map(corrida => ({
-                ...corrida,
-                // Parse seguro do GeoJSON para o Mapbox
-                geometriaIda: corrida.rotaIda?.geoJsonRota ? JSON.parse(corrida.rotaIda.geoJsonRota) : null,
-                geometriaVolta: corrida.rotaVolta?.geoJsonRota ? JSON.parse(corrida.rotaVolta.geoJsonRota) : null
-            })),
+            success: true,
             meta: {
-                totalRegistros: total,
+                total,
+                paginas: Math.ceil(total / limit),
                 paginaAtual: page,
-                totalPaginas: Math.ceil(total / limit),
-                itensPorPagina: limit
-            }
+                limite: limit
+            },
+            dados: dadosFormatados
         });
 
     } catch (error: any) {
-        console.error("Erro ao listar corridas:", error);
+        console.error(`[GET /corrida] Erro: ${error.message}`);
         return res.status(500).json({ 
-            message: "Erro interno ao processar a listagem de corridas.",
-            error: error.message 
+            success: false,
+            message: "Erro ao listar corridas.",
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined 
         });
     }
 });
@@ -95,190 +130,245 @@ router.get("/corrida/:id", async (req: Request, res: Response) => {
         const { id } = req.params;
         const corridaRepository = AppDataSource.getRepository(Corrida);
 
-        // Busca uma única corrida pelo ID com todas as relações para o mapa
+        // 1. Busca otimizada com seleção específica de relações
         const corrida = await corridaRepository.findOne({
             where: { id: Number(id) },
-            relations: [
-                "motorista",
-                "carro",
-                "empresa",
-                "funcionarios",
-                "funcionarios.logradouro",
-                "rotaIda",
-                "rotaVolta"
-            ],
+            relations: {
+                motorista: { pessoa: true },
+                carro: true,
+                empresa: { logradouro: true },
+                funcionarios: { pessoa: true, logradouro: true },
+                rotaIda: true,
+                rotaVolta: true
+            },
         });
 
-        // Caso a corrida não exista
         if (!corrida) {
-            return res.status(404).json({ message: "Corrida não encontrada." });
+            return res.status(404).json({ success: false, message: "Corrida não encontrada." });
         }
 
-        // Formatação da resposta com parse do GeoJSON para o Mapbox
-        const dadosFormatados = {
-            ...corrida,
-            geometriaIda: corrida.rotaIda?.geoJsonRota ? JSON.parse(corrida.rotaIda.geoJsonRota) : null,
-            geometriaVolta: corrida.rotaVolta?.geoJsonRota ? JSON.parse(corrida.rotaVolta.geoJsonRota) : null
+        // Helper para Parse seguro de JSON (evita erro 500 se o banco tiver dado inválido)
+        const safeParse = (str?: string | null) => {
+            if (!str) return null;
+            try { return JSON.parse(str); } catch { return null; }
         };
 
-        return res.status(200).json(dadosFormatados);
+        // 2. Construção de um DTO (Data Transfer Object) limpo e semântico
+        const dadosFormatados = {
+            id: corrida.id,
+            tipo: corrida.rotaIda ? "IDA" : "VOLTA",
+            status: {
+                inicio: corrida.inicioDaCorrida,
+                fim: corrida.fimDaCorrida || "Em andamento",
+            },
+            atribuicao: {
+                motorista: {
+                    id: corrida.motorista?.id,
+                    nome: corrida.motorista?.pessoa?.nome || "Motorista não vinculado",
+                    cpf: corrida.motorista?.pessoa?.cpf || "N/A"
+                },
+                veiculo: {
+                    id: corrida.carro?.id,
+                    placa: corrida.carro?.placa || "N/A",
+                    modelo: corrida.carro?.modelo || "N/A"
+                },
+                empresa: {
+                    nome: corrida.empresa?.nome,
+                    coordenadas: [corrida.empresa?.logradouro?.longitude, corrida.empresa?.logradouro?.latitude]
+                }
+            },
+            passageiros: (corrida.funcionarios || []).map(f => ({
+                id: f.id,
+                nome: f.pessoa?.nome || "Funcionário Removido",
+                coordenadas: [f.logradouro?.longitude, f.logradouro?.latitude]
+            })),
+            mapa: {
+                // Consolida a rota independente de ser ida ou volta
+                geoJson: safeParse(corrida.rotaIda?.geoJsonRota || corrida.rotaVolta?.geoJsonRota),
+                ordemParadas: (corrida.rotaIda?.ordemDasParadas || corrida.rotaVolta?.ordemDasParadas || "")
+                    .split(",")
+                    .filter(id => id !== "")
+                    .map(Number)
+            },
+            // Log imutável gerado no momento da criação para fins de auditoria
+            snapshotHistorico: corrida.logNomesParticipantes
+        };
+
+        return res.status(200).json({
+            success: true,
+            dados: dadosFormatados
+        });
 
     } catch (error: any) {
-        console.error("Erro ao buscar detalhes da corrida:", error);
+        console.error(`[GET /corrida/:id] Erro: ${error.message}`);
         return res.status(500).json({ 
-            message: "Erro ao buscar detalhes da corrida!",
-            error: error.message 
+            success: false,
+            message: "Erro interno ao processar detalhes da corrida.",
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined 
         });
     }
 });
 
+// Rota para processar as solicitações:
 router.post("/corridas/processar-solicitacoes", async (req: Request, res: Response) => {
     const queryRunner = AppDataSource.createQueryRunner();
     try {
+        const { empresaId, motoristaIds, funcionarioIds, tipoRota, data } = req.body;
         const optimizationClient = getOptimizationClient();
-        const { empresaId, motoristaIds, funcionarioIds, tipoRota } = req.body;
 
         await queryRunner.connect();
         await queryRunner.startTransaction();
 
-        // 1. Busca Empresa e Funcionários com GPS
+        // 1. Carregamento da Empresa
         const empresa = await queryRunner.manager.findOne(Empresa, {
             where: { id: empresaId },
             relations: ["logradouro"]
         });
-
         if (!empresa?.logradouro?.latitude) throw new Error("GPS da empresa não configurado.");
 
-        const funcionarios = await queryRunner.manager.getRepository(Funcionario).find({
+        // 2. Determinação da Fila de Motoristas (Diferenciando Escala de IDA e VOLTA)
+        let filaIds: number[] = [];
+        if (motoristaIds && motoristaIds.length > 0) {
+            filaIds = motoristaIds; // Modo Manual
+        } else {
+            const dataBusca = data || new Date().toISOString().split('T')[0];
+            const escala = await queryRunner.manager.findOne(Escala, {
+                where: { 
+                    data: dataBusca, 
+                    tipoRota: tipoRota // Busca a escala específica (IDA ou VOLTA)
+                },
+                relations: ["motoristasOrdem", "motoristasOrdem.motorista"]
+            });
+
+            if (!escala) throw new Error(`Escala de ${tipoRota} não encontrada para ${dataBusca}.`);
+            
+            // Ordenação manual definida na escala
+            filaIds = escala.motoristasOrdem
+                .sort((a, b) => a.ordem! - b.ordem!)
+                .map(m => m.motorista!.id);
+        }
+
+        if (filaIds.length === 0) throw new Error("Nenhum motorista disponível.");
+
+        // 3. Busca em lote de Motoristas (Evita múltiplas consultas ao banco)
+        const motoristasMap = new Map<number, Motorista>();
+        const dadosMotoristas = await queryRunner.manager.find(Motorista, {
+            where: { id: In(filaIds) },
+            relations: ["carroAtual", "pessoa"]
+        });
+        dadosMotoristas.forEach(m => motoristasMap.set(m.id, m));
+
+        // 4. Carregamento dos Funcionários
+        const funcionarios = await queryRunner.manager.find(Funcionario, {
             where: { id: In(funcionarioIds) },
-            relations: ["logradouro"]
+            relations: ["logradouro", "pessoa"]
         });
 
         const validos = funcionarios.filter(f => f.logradouro?.latitude != null);
-        
-        // 2. Agrupamento (Máximo 4 por carro)
-        const gruposDeQuatro = [];
-        for (let i = 0; i < validos.length; i += 4) {
-            gruposDeQuatro.push(validos.slice(i, i + 4));
-        }
+        const grupos = Array.from({ length: Math.ceil(validos.length / 4) }, (_, i) => 
+            validos.slice(i * 4, i * 4 + 4)
+        );
 
-        const resultados = [];
+        const resultados: Corrida[] = [];
 
-        for (let index = 0; index < gruposDeQuatro.length; index++) {
-            const grupoOriginal = gruposDeQuatro[index];
-            
-            // --- REGRA DE MOTORISTA ---
+        // 5. Processamento dos Grupos
+        for (let i = 0; i < grupos.length; i++) {
+            const grupo = grupos[i];
             let motoristaIdFinal: number;
+
             if (tipoRota === "VOLTA") {
-                const corridaIdaAnterior = await queryRunner.manager.findOne(Corrida, {
-                    where: { funcionarios: { id: grupoOriginal[0].id }, rotaIda: Not(IsNull()) },
+                // Tenta manter o motorista que fez a IDA para este grupo específico
+                const idaAnterior = await queryRunner.manager.findOne(Corrida, {
+                    where: { funcionarios: { id: grupo[0].id }, rotaIda: Not(IsNull()) },
                     order: { inicioDaCorrida: "DESC" },
                     relations: ["motorista"]
                 });
-                motoristaIdFinal = corridaIdaAnterior ? corridaIdaAnterior.motorista.id : (motoristaIds[index] || motoristaIds[0]);
+                
+                // Se não achar a ida, usa o motorista da escala de VOLTA na posição atual
+                motoristaIdFinal = idaAnterior?.motorista?.id || filaIds[i] || filaIds[0];
             } else {
-                motoristaIdFinal = motoristaIds[index] || motoristaIds[0];
+                // Na IDA, segue rigorosamente a escala de IDA
+                motoristaIdFinal = filaIds[i] || filaIds[0];
             }
 
-            const motoristaData = await queryRunner.manager.getRepository(Motorista).findOne({
-                where: { id: motoristaIdFinal },
-                relations: ["carroAtual"]
-            });
+            const motoristaData = motoristasMap.get(motoristaIdFinal);
+            if (!motoristaData?.carroAtual) throw new Error(`Motorista ${motoristaIdFinal} sem veículo vinculado.`);
 
-            if (!motoristaData?.carroAtual) throw new Error(`Motorista ${motoristaIdFinal} sem veículo.`);
-
-            // --- 3. ORDENAÇÃO VIA MAPBOX OPTIMIZATION API ---
-            // Formata coordenadas para o Mapbox [longitude, latitude]
-            const coordsFuncionarios = grupoOriginal.map(f => ({
-                id: f.id,
-                coordinates: [f.logradouro.longitude, f.logradouro.latitude] as [number, number]
-            }));
+            // 6. Otimização Mapbox (Logística de IDA vs VOLTA)
             const coordEmpresa = [empresa.logradouro.longitude, empresa.logradouro.latitude] as [number, number];
+            const coordFuncs = grupo.map(f => ({ coordinates: [f.logradouro!.longitude, f.logradouro!.latitude] as [number, number] }));
 
-            // Monta os pontos: No Mapbox, o primeiro ponto é o início
-            // IDA: Funcionários -> Empresa | VOLTA: Empresa -> Funcionários
-            const points = tipoRota === "IDA" 
-                ? [...coordsFuncionarios.map(c => ({ coordinates: c.coordinates })), { coordinates: coordEmpresa }]
-                : [{ coordinates: coordEmpresa }, ...coordsFuncionarios.map(c => ({ coordinates: c.coordinates }))];
+            const waypoints = tipoRota === "IDA" 
+                ? [...coordFuncs, { coordinates: coordEmpresa }] 
+                : [{ coordinates: coordEmpresa }, ...coordFuncs];
 
             const response = await optimizationClient.getOptimization({
                 profile: 'driving-traffic',
-                waypoints: points,
-                source: 'first', // Força iniciar no primeiro ponto da lista
-                destination: 'last' // Força terminar no último ponto da lista
+                waypoints: waypoints,
+                source: 'first',
+                destination: 'last'
             }).send();
 
-            // Reordena o array original baseado no índice retornado pelo MapBox
-            // O Mapbox retorna 'waypoint_index' que corresponde à ordem na lista de 'points'
-            const ordemMapbox = response.body.waypoints
+            const waypointLocations = response.body.waypoints
                 .sort((a: any, b: any) => a.waypoint_index - b.waypoint_index)
-                .map((wp: any) => wp.location); // Coordenadas ordenadas
+                .map((wp: any) => wp.location);
 
-            const grupoOrdenado = tipoRota === "IDA"
-                ? [...grupoOriginal].sort((a, b) => {
-                    const idxA = ordemMapbox.findIndex((c: any) => c[0] === a.logradouro.longitude);
-                    const idxB = ordemMapbox.findIndex((c: any) => c[0] === b.logradouro.longitude);
-                    return idxA - idxB;
-                })
-                : [...grupoOriginal].sort((a, b) => {
-                    const idxA = ordemMapbox.findIndex((c: any) => c[0] === a.logradouro.longitude);
-                    const idxB = ordemMapbox.findIndex((c: any) => c[0] === b.logradouro.longitude);
-                    return idxA - idxB;
-                });
+            const grupoOrdenado = [...grupo].sort((a, b) => {
+                const posA = waypointLocations.findIndex((loc: any) => loc[0] === a.logradouro!.longitude);
+                const posB = waypointLocations.findIndex((loc: any) => loc[0] === b.logradouro!.longitude);
+                return posA - posB;
+            });
 
-            const ordemIds = grupoOrdenado.map(f => f.id).join(",");
+            // 7. Salvamento da Rota e Corrida com Snapshot
+            const rotaSalva = await queryRunner.manager.save(tipoRota === "IDA" ? RotaIda : RotaVolta, {
+                funcionarios: grupoOrdenado,
+                empresa: { id: empresaId },
+                ordemDasParadas: grupoOrdenado.map(f => f.id).join(","),
+                geoJsonRota: JSON.stringify(response.body.trips[0]?.geometry)
+            });
 
-            // --- 4. SALVAMENTO ---
-            const rotaSalva = await queryRunner.manager.save(
-                tipoRota === "IDA" ? RotaIda : RotaVolta, 
-                {
-                    funcionarios: grupoOrdenado,
-                    empresa: { id: empresaId },
-                    ordemDasParadas: ordemIds,
-                    geometryMapbox: JSON.stringify(response.body.trips[0]?.geometry) // Opcional: salva o desenho da rota
-                }
-            );
+            const snapshot = `Motorista: ${motoristaData.pessoa!.nome} | Carro: ${motoristaData.carroAtual.placa} | Passageiros: ${grupoOrdenado.map(f => f.pessoa!.nome).join(", ")}`;
 
             const novaCorrida = queryRunner.manager.create(Corrida, {
-                empresa: { id: empresaId },
+                empresa,
                 motorista: motoristaData,
                 carro: motoristaData.carroAtual,
                 funcionarios: grupoOrdenado,
-                rotaIda: tipoRota === "IDA" ? rotaSalva : null,
-                rotaVolta: tipoRota === "VOLTA" ? rotaSalva : null,
+                rotaIda: tipoRota === "IDA" ? (rotaSalva as RotaIda) : null,
+                rotaVolta: tipoRota === "VOLTA" ? (rotaSalva as RotaVolta) : null,
+                logNomesParticipantes: snapshot,
                 inicioDaCorrida: new Date()
             });
 
-            const corridaFinal = await queryRunner.manager.save(novaCorrida);
+            const corridaSalva = await queryRunner.manager.save(novaCorrida);
 
-            await queryRunner.manager.update(Solicitacao,
-                { 
-                    funcionario: { id: In(grupoOrdenado.map(f => f.id)) }, 
-                    processada: false,
-                    tipoRota: tipoRota 
-                },
-                { processada: true, corrida: corridaFinal }
+            // 8. Atualização das Solicitações
+            await queryRunner.manager.update(Solicitacao, 
+                { funcionario: { id: In(grupoOrdenado.map(f => f.id)) }, processada: false, tipoRota },
+                { processada: true, corrida: corridaSalva }
             );
 
-            resultados.push(corridaFinal);
+            resultados.push(corridaSalva);
         }
 
         await queryRunner.commitTransaction();
-        return res.status(201).json({ message: `Processamento concluído.`, corridas: resultados });
+        return res.status(201).json({ message: "Processamento concluído com sucesso", corridas: resultados });
 
     } catch (error: any) {
-        await queryRunner.rollbackTransaction();
+        if (queryRunner.isTransactionActive) await queryRunner.rollbackTransaction();
+        console.error("Erro no Router:", error.message);
         return res.status(500).json({ message: error.message });
     } finally {
         await queryRunner.release();
     }
 });
 
+// Rota para processar uma janela de solicitações:
 router.post("/corridas/processar-janela-solicitacoes", async (req: Request, res: Response) => {
     const queryRunner = AppDataSource.createQueryRunner();
     try {
-        const optimizationClient = getOptimizationClient();
         const { empresaId, tipoRota, dataHoraBase, janelaMinutos } = req.body;
+        const optimizationClient = getOptimizationClient();
         
         const inicioJanela = new Date(dataHoraBase);
         const fimJanela = new Date(inicioJanela.getTime() + (janelaMinutos || 0) * 60000);
@@ -287,21 +377,23 @@ router.post("/corridas/processar-janela-solicitacoes", async (req: Request, res:
         await queryRunner.connect();
         await queryRunner.startTransaction();
 
-        // 1. Busca Escala e Empresa
-        const escala = await queryRunner.manager.findOne(Escala, { where: { data: dataEscala } });
-        if (!escala?.motoristaIds?.length) {
-            throw new Error(`Escala não definida para a data ${dataEscala}.`);
+        // 1. Busca Escala (específica por tipo) e Empresa
+        const escala = await queryRunner.manager.findOne(Escala, { 
+            where: { data: dataEscala, tipoRota: tipoRota },
+            relations: ["motoristasOrdem", "motoristasOrdem.motorista", "motoristasOrdem.motorista.pessoa", "motoristasOrdem.motorista.carroAtual"]
+        });
+
+        if (!escala || escala.motoristasOrdem.length === 0) {
+            throw new Error(`Escala de ${tipoRota} não definida para a data ${dataEscala}.`);
         }
 
         const empresa = await queryRunner.manager.findOne(Empresa, {
             where: { id: empresaId },
             relations: ["logradouro"]
         });
-        if (!empresa?.logradouro?.latitude) {
-            throw new Error("GPS da empresa não configurado.");
-        }
+        if (!empresa?.logradouro?.latitude) throw new Error("GPS da empresa não configurado.");
 
-        // 2. Busca Solicitações
+        // 2. Busca Solicitações Pendentes na Janela
         const solicitacoes = await queryRunner.manager.find(Solicitacao, {
             where: {
                 empresa: { id: empresaId },
@@ -309,137 +401,175 @@ router.post("/corridas/processar-janela-solicitacoes", async (req: Request, res:
                 processada: false,
                 dataHoraAgendada: Between(inicioJanela, fimJanela)
             },
-            relations: ["funcionario", "funcionario.logradouro"]
+            relations: ["funcionario", "funcionario.logradouro", "funcionario.pessoa"]
         });
 
         const validas = solicitacoes.filter(s => s.funcionario?.logradouro?.latitude != null);
         if (validas.length === 0) {
-            return res.status(200).json({ message: "Sem solicitações válidas." });
+            await queryRunner.rollbackTransaction();
+            return res.status(200).json({ message: "Sem solicitações válidas na janela informada." });
         }
 
-        // 3. Ordenação Geográfica Base (Latitude)
-        validas.sort((a, b) => Number(a.funcionario.logradouro.latitude) - Number(b.funcionario.logradouro.latitude));
+        // 3. Preparação da Fila de Motoristas da Escala
+        const filaMotoristas = escala.motoristasOrdem
+            .sort((a, b) => a.ordem! - b.ordem!)
+            .map(em => em.motorista);
 
-        const resultados = [];
-        const motoristasIds = escala.motoristaIds;
+        const resultados: Corrida[] = [];
         let motoristaIndex = 0;
 
-        // 4. Processamento em Lotes de 4
+        // 4. Processamento em Lotes (Capacidade máxima de 4 passageiros)
         for (let i = 0; i < validas.length; i += 4) {
-            if (motoristaIndex >= motoristasIds.length) break;
+            // Verifica se ainda há motoristas na escala para atender o próximo lote
+            if (motoristaIndex >= filaMotoristas.length) break;
 
             const loteSolicitacoes = validas.slice(i, i + 4);
-            const funcionariosGrupo: Funcionario[] = loteSolicitacoes.map(s => s.funcionario);
-            const motoristaId = motoristasIds[motoristaIndex];
+            const funcionariosGrupo = loteSolicitacoes.map(s => s.funcionario!);
+            const motoristaData = filaMotoristas[motoristaIndex];
 
+            if (!motoristaData!.carroAtual) {
+                throw new Error(`Motorista ${motoristaData!.pessoa!.nome} está na escala mas não possui carro vinculado.`);
+            }
+
+            // 5. Configuração de Pontos para Mapbox
             const coordEmpresa: [number, number] = [Number(empresa.logradouro.longitude), Number(empresa.logradouro.latitude)];
-            
-            // TIPAGEM EXPLÍCITA (f: any) ou (f: Funcionario) resolve o erro de parâmetro implícito
-            const coordsFuncs = funcionariosGrupo.map((f: any) => [
-                Number(f.logradouro.longitude), 
-                Number(f.logradouro.latitude)
-            ] as [number, number]);
+            const coordFuncs = funcionariosGrupo.map(f => [Number(f.logradouro!.longitude), Number(f.logradouro!.latitude)] as [number, number]);
 
             const waypoints = tipoRota === "IDA" 
-                ? [...coordsFuncs.map(c => ({ coordinates: c })), { coordinates: coordEmpresa }]
-                : [{ coordinates: coordEmpresa }, ...coordsFuncs.map(c => ({ coordinates: c }))];
+                ? [...coordFuncs.map(c => ({ coordinates: c })), { coordinates: coordEmpresa }]
+                : [{ coordinates: coordEmpresa }, ...coordFuncs.map(c => ({ coordinates: c }))];
 
-            // 5. Chamada Mapbox Optimization
             const response = await optimizationClient.getOptimization({
                 profile: 'driving-traffic',
-                waypoints: waypoints,
+                waypoints,
                 source: 'first',
                 destination: 'last',
                 geometries: 'geojson'
             }).send();
 
-            const waypointsOrdenados = response.body.waypoints.sort((a: any, b: any) => a.waypoint_index - b.waypoint_index);
-            
-            // Reordenamento e limpeza do ponto da empresa
-            const funcionariosOrdenados = waypointsOrdenados
-                .map((wp: any) => {
-                    const idxOriginal = wp.location_index;
-                    if (tipoRota === "IDA") {
-                        return idxOriginal < funcionariosGrupo.length ? funcionariosGrupo[idxOriginal] : null;
-                    } else {
-                        return idxOriginal > 0 ? funcionariosGrupo[idxOriginal - 1] : null;
-                    }
-                })
-                .filter((f: any): f is Funcionario => f !== null);
+            // Reordenar funcionários conforme otimização do GPS
+            const waypointLocations = response.body.waypoints
+                .sort((a: any, b: any) => a.waypoint_index - b.waypoint_index)
+                .map((wp: any) => wp.location);
 
-            // 6. Salvamento da Rota e Corrida
-            const ordemIds = funcionariosOrdenados.map((f: any) => f.id).join(",");
-            const geoJson = JSON.stringify(response.body.trips[0].geometry);
+            const funcionariosOrdenados = [...funcionariosGrupo].sort((a, b) => {
+                const posA = waypointLocations.findIndex((loc: any) => loc[0] === a.logradouro!.longitude);
+                const posB = waypointLocations.findIndex((loc: any) => loc[0] === b.logradouro!.longitude);
+                return posA - posB;
+            });
+
+            // 6. Snapshot imutável e Persistência da Rota
+            const nomesPassageiros = funcionariosOrdenados.map(f => f.pessoa?.nome || "N/A").join(", ");
+            const snapshot = `Motorista: ${motoristaData!.pessoa!.nome} | Carro: ${motoristaData!.carroAtual.placa} | Passageiros: ${nomesPassageiros}`;
 
             const rota = await queryRunner.manager.save(tipoRota === "IDA" ? RotaIda : RotaVolta, {
                 funcionarios: funcionariosOrdenados,
                 empresa: { id: empresaId },
-                ordemDasParadas: ordemIds,
-                geometry: geoJson
+                ordemDasParadas: funcionariosOrdenados.map(f => f.id).join(","),
+                geoJsonRota: JSON.stringify(response.body.trips[0].geometry)
             });
 
-            const corrida = await queryRunner.manager.save(Corrida, {
+            // 7. Criação da Corrida
+            const novaCorrida = queryRunner.manager.create(Corrida, {
                 empresa: { id: empresaId },
-                motorista: { id: motoristaId },
+                motorista: motoristaData,
+                carro: motoristaData!.carroAtual,
                 funcionarios: funcionariosOrdenados,
-                rotaIda: tipoRota === "IDA" ? rota : null,
-                rotaVolta: tipoRota === "VOLTA" ? rota : null,
-                inicioDaCorrida: inicioJanela
+                rotaIda: tipoRota === "IDA" ? (rota as RotaIda) : null,
+                rotaVolta: tipoRota === "VOLTA" ? (rota as RotaVolta) : null,
+                inicioDaCorrida: inicioJanela, // Mantém a hora base da janela como início
+                logNomesParticipantes: snapshot
             });
 
-            // Baixa nas solicitações
+            const corridaSalva = await queryRunner.manager.save(novaCorrida);
+
+            // 8. Vincula solicitações à corrida e marca como processadas
             await queryRunner.manager.update(Solicitacao,
                 { id: In(loteSolicitacoes.map(s => s.id)) },
-                { processada: true, corrida: corrida }
+                { processada: true, corrida: corridaSalva }
             );
 
-            resultados.push(corrida);
+            resultados.push(corridaSalva);
             motoristaIndex++;
         }
 
         await queryRunner.commitTransaction();
-
+        
         return res.status(201).json({
-            message: "Processamento concluído.",
+            message: "Processamento por janela concluído.",
             corridasGeradas: resultados.length,
-            status: motoristaIndex < Math.ceil(validas.length / 4) ? "Faltam motoristas" : "OK"
+            motoristasUtilizados: motoristaIndex,
+            totalSolicitacoesProcessadas: resultados.length * 4 > validas.length ? validas.length : resultados.length * 4
         });
 
     } catch (error: any) {
         if (queryRunner.isTransactionActive) await queryRunner.rollbackTransaction();
-        console.error(error);
+        console.error("Erro Processamento Janela:", error.message);
         return res.status(500).json({ message: error.message });
     } finally {
         await queryRunner.release();
     }
 });
 
-router.delete("/corrida/:id", async (req:Request, res:Response) => {
+// Rota para deletar uma corrida específica:
+router.delete("/corrida/:id", async (req: Request, res: Response) => {
+    const queryRunner = AppDataSource.createQueryRunner();
+    
     try {
-        const {id} = req.params;
-        const corridaRepository = AppDataSource.getRepository(Corrida);
+        const { id } = req.params;
+        const corridaId = parseInt(id);
 
-        const corrida = await corridaRepository.findOne({
-            where: {id: parseInt(id)},
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
+
+        // 1. Busca a corrida e suas relações de rota
+        // Não precisamos carregar 'solicitacoes' aqui para economizar memória,
+        // pois faremos o update via QueryBuilder.
+        const corrida = await queryRunner.manager.findOne(Corrida, {
+            where: { id: corridaId },
+            relations: ["rotaIda", "rotaVolta"]
         });
 
-        if(!corrida) {
-            return res.status(400).json({
-                message: "Registro de corrida não encontrado!"
-            });
+        if (!corrida) {
+            return res.status(404).json({ success: false, message: "Corrida não encontrada." });
         }
 
-        await corridaRepository.remove(corrida);
+        // 2. Reset das Solicitações (Voltam a ficar pendentes para novo processamento)
+        // Usamos o queryRunner para garantir que esta alteração faça parte da transação
+        await queryRunner.manager.createQueryBuilder()
+            .update(Solicitacao)
+            .set({ 
+                processada: false, 
+                corrida: null 
+            })
+            .where("corridaId = :id", { id: corridaId })
+            .execute();
+
+        // 3. Remoção da Corrida
+        // Se as entidades RotaIda/RotaVolta estiverem com { cascade: true } ou { onDelete: 'CASCADE' },
+        // as rotas serão apagadas automaticamente ao remover a corrida.
+        await queryRunner.manager.remove(Corrida, corrida);
+
+        await queryRunner.commitTransaction();
 
         return res.status(200).json({
-            message: "Registro de corrida removido com sucesso!"
+            success: true,
+            message: "Corrida removida e solicitações liberadas com sucesso."
         });
         
-    } catch (error:any) {
-        console.error(error)
+    } catch (error: any) {
+        // Se algo falhar, desfazemos todas as alterações (rollback)
+        if (queryRunner.isTransactionActive) await queryRunner.rollbackTransaction();
+        
+        console.error(`[DELETE /corrida/${req.params.id}] Erro:`, error.message);
         return res.status(500).json({
-            message: "Erro ao deletar o registro da corrida!"
+            success: false,
+            message: "Erro ao deletar o registro da corrida.",
+            error: error.message
         });
+    } finally {
+        // Obrigatório liberar o queryRunner
+        await queryRunner.release();
     }
 });
 

@@ -1,20 +1,39 @@
-import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn, Unique } from "typeorm";
+import { EscalaMotorista } from "./EscalaMotorista";
 
-@Entity()
+@Entity("escala")
+@Unique(["data", "tipoRota"]) // Permite uma IDA e uma VOLTA por dia, mas não duas IDAs.
 export class Escala {
     @PrimaryGeneratedColumn()
     id: number;
 
-    @Column({ type: 'date' })
-    data: string; // Ex: "2025-12-23"
+    @Column({ type: 'date' }) // Removido o unique daqui
+    data: string;
 
-    // Guardaremos a ordem exata da seleção manual
-    @Column("simple-array")
-    motoristaIds: number[];
+    @Column({
+        type: "enum",
+        enum: ["IDA", "VOLTA"],
+        default: "IDA"
+    })
+    tipoRota: "IDA" | "VOLTA";
 
-    constructor(id: number, data: string, motoristaIds: number[]) {
-        this.id = id;
-        this.data = data;
-        this.motoristaIds = motoristaIds;
+    @OneToMany(() => EscalaMotorista, escalaMotorista => escalaMotorista.escala, { 
+        cascade: true, 
+        eager: true 
+    })
+    motoristasOrdem!: EscalaMotorista[];
+
+    constructor(
+        id?: number,
+        data?: string,
+        motoristasOrdem?: EscalaMotorista[],
+        tipoRota?: "IDA" | "VOLTA"
+    ) {
+        this.id = id!;
+        this.data = data!;
+        this.tipoRota = tipoRota!;
+        if(motoristasOrdem) {
+        this.motoristasOrdem = motoristasOrdem
+        }
     }
 }

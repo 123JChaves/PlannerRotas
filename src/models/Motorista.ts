@@ -1,6 +1,7 @@
-import { Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn } from "typeorm";
 import { Carro } from "./Carro";
 import { Corrida } from "./Corrida";
+import { Pessoa } from "./Pessoa";
 
 @Entity("motorista")
 export class Motorista {
@@ -8,17 +9,28 @@ export class Motorista {
     @PrimaryGeneratedColumn()
     id: number;
 
+    @OneToOne(() => Pessoa, { cascade: true, onDelete: "CASCADE" })
+    @JoinColumn({ name: "pessoaId" })
+    pessoa?: Pessoa;
+
     @Column()
-    nome: string;
+    pessoaId?: number;
 
-    @Column({unique: true})
-    cpf: string;
-
-    @ManyToMany(() => Carro, carro => carro.motoristas, { cascade: true, eager: true, nullable: true })
+    @ManyToMany(() => Carro, carro => carro.motoristas, { 
+        cascade: ["insert", "update"], // Evita que o TypeORM tente deletar o Carro ao deletar o Motorista
+        eager: true,
+        nullable: true
+    })
     @JoinTable({
-        name: "motorista_carros", // Nome da tabela intermediária
-        joinColumn: { name: "motoristaId", referencedColumnName: "id" },
-        inverseJoinColumn: { name: "carroId", referencedColumnName: "id" }
+        name: "motorista_carros",
+        joinColumn: {
+            name: "motoristaId",
+            referencedColumnName: "id"
+        },
+        inverseJoinColumn: {
+            name: "carroId",
+            referencedColumnName: "id"
+        }
     })
     carros?: Carro[] | null;
 
@@ -41,8 +53,8 @@ export class Motorista {
     updateDate: Date;
 
     constructor(id?: number,
-                nome?: string,
-                cpf?: string,
+                pessoa?: Pessoa,
+                pessoaId?: number,
                 carros?: Carro[] | null,
                 carroAtualId?: number | null,
                 carroAtual?: Carro | null,
@@ -50,8 +62,8 @@ export class Motorista {
                 createDate?: Date,
                 updateDate?: Date) {
         this.id = id!;
-        this.nome = nome!;
-        this.cpf = cpf!;
+        this.pessoa = pessoa;
+        this.pessoaId = pessoaId;
         if(carros) {
         this.carros = carros;
         }

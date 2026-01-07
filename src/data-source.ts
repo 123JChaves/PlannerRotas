@@ -17,6 +17,9 @@ import { RotaVolta } from "./models/RotaVolta";
 import { Solicitacao } from "./models/Solicitacao";
 import { Escala } from "./models/Escala";
 import { Categoria } from './models/Categoria';
+import { SolicitacaoCancelamento } from './models/SolicitacaoCancelamento';
+import { Pessoa } from './models/Pessoa';
+import { EscalaMotorista } from './models/EscalaMotorista';
 
 export const AppDataSource = new DataSource({
     type: "mysql",
@@ -28,7 +31,8 @@ export const AppDataSource = new DataSource({
     synchronize: true,
     logging: true,
     entities: [User, Pais, Estado, Cidade, Bairro, Logradouro, Motorista,Carro, Categoria, Empresa, 
-        Funcionario, Corrida, RotaIda, RotaVolta, Solicitacao, Escala, Bairro, Estado, Pais],
+        Funcionario, Corrida, RotaIda, RotaVolta, Solicitacao, SolicitacaoCancelamento, Escala, Bairro, 
+        Estado, Pais, Pessoa, EscalaMotorista],
 
     subscribers: [],
     migrations: [__dirname+"/migrations/*.js"],

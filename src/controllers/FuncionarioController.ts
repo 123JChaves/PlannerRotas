@@ -4,6 +4,7 @@ import { AppDataSource } from "../data-source";
 import { Funcionario } from "../models/Funcionario";
 import { Logradouro } from "../models/Logradouro";
 import { Empresa } from "../models/Empresa";
+import { Pessoa } from "../models/Pessoa";
 
 const router = express.Router();
 
@@ -11,20 +12,33 @@ const router = express.Router();
 router.get("/funcionario", async (req: Request, res: Response) => {
     try {
         const funcionarioRepository = AppDataSource.getRepository(Funcionario);
-        // Adicionado relations para você conseguir ver o endereço no EchoApi
-       const funcionarios = await funcionarioRepository.find({
-    relations: [
+
+        const funcionarios = await funcionarioRepository.find({
+            relations: [
+                "pessoa", // ESSENCIAL: Carrega Nome e CPF da tabela Pessoa
                 "empresa",
                 "logradouro",
                 "logradouro.bairro",
                 "logradouro.bairro.cidade",
                 "logradouro.bairro.cidade.estado",
                 "logradouro.bairro.cidade.estado.pais"
-    ]
+            ]
         });
-        res.status(200).json(funcionarios);
-    } catch (error) {
-        res.status(500).json({ message: "Erro ao listar os funcionários!" });
+
+        // Formatação opcional para o JSON ficar mais limpo (achata o objeto pessoa)
+        const respostaFormatada = funcionarios.map(f => ({
+            id: f.id,
+            nome: f.pessoa?.nome,
+            cpf: f.pessoa?.cpf,
+            empresa: f.empresa?.nome,
+            logradouro: f.logradouro,
+            createDate: f.createDate
+        }));
+
+        res.status(200).json(respostaFormatada);
+    } catch (error: any) {
+        console.error("Erro ao listar funcionários:", error);
+        res.status(500).json({ message: "Erro ao listar os funcionários!", error: error.message });
     }
 });
 
@@ -36,6 +50,7 @@ router.get("/funcionario/:id", async (req: Request, res: Response) => {
         const funcionario = await funcionarioRepository.findOne({
             where: { id: parseInt(id) },
             relations: [
+                        "pessoa",
                         "empresa",
                         "logradouro",
                         "logradouro.bairro",
@@ -65,6 +80,7 @@ router.get("/funcionario/empresa/:empresaId", async (req: Request, res: Response
                 empresa: { id: parseInt(empresaId) } // Filtra pela relação
             },
             relations: [
+                "pessoa",
                 "empresa",
                 "logradouro",
                 "logradouro.bairro",
@@ -86,90 +102,61 @@ router.get("/funcionario/empresa/:empresaId", async (req: Request, res: Response
 router.post("/empresa/:empresaId/funcionario", async (req: Request, res: Response) => {
     try {
         const { empresaId } = req.params;
-        const data = req.body;
-        
+        const data = req.body; // Espera-se { nome, cpf, logradouro, ... }
+
         const funcionarioRepository = AppDataSource.getRepository(Funcionario);
         const empresaRepository = AppDataSource.getRepository(Empresa);
+        const pessoaRepository = AppDataSource.getRepository(Pessoa);
 
-        // 1. Verificar se a empresa informada na URL realmente existe
+        // 1. Verificar Empresa
         const empresa = await empresaRepository.findOneBy({ id: Number(empresaId) });
-        if (!empresa) {
-            return res.status(404).json({ message: "Empresa não encontrada!" });
+        if (!empresa) return res.status(404).json({ message: "Empresa não encontrada!" });
+
+        // 2. Validar CPF e gerenciar a Entidade Pessoa
+        if (!data.cpf) return res.status(400).json({ message: "CPF é obrigatório!" });
+
+        // Busca se a pessoa já existe no sistema (como motorista ou outro funcionário)
+        let pessoa = await pessoaRepository.findOneBy({ cpf: data.cpf });
+
+        if (pessoa) {
+            // Se a pessoa existe, verifica se ELA já é funcionária NESTA ou em qualquer empresa
+            const funcionarioExistente = await funcionarioRepository.findOneBy({ pessoaId: pessoa.id });
+            if (funcionarioExistente) {
+                return res.status(400).json({ message: "Este CPF já está vinculado a um funcionário!" });
+            }
+        } else {
+            // Se a pessoa não existe, cria o registro básico dela
+            pessoa = pessoaRepository.create({
+                nome: data.nome,
+                cpf: data.cpf
+            });
+            await pessoaRepository.save(pessoa);
         }
 
-        // 2. Validar CPF:
-        if (!data.cpf) return res.status(400).json({ message: "CPF é obrigatório!" });
-        
-        const existingFunc = await funcionarioRepository.findOneBy({ cpf: data.cpf });
-        if (existingFunc) return res.status(400).json({ message: "CPF já cadastrado!" });
-
-        // 3. Normalização simples
-        // Se vier apenas o ID, o TypeORM já entende. 
-        // Se vier o objeto sem ID, precisamos garantir que o logradouro existe.
+        // 3. Normalização de Logradouro (mantida sua lógica)
         if (data.logradouro && !data.logradouro.id) {
             const logradouroRepository = AppDataSource.getRepository(Logradouro);
             const logExistente = await logradouroRepository.findOne({
-                where: {
-                    nome: data.logradouro.nome,
-                    numero: data.logradouro.numero
-                }
+                where: { nome: data.logradouro.nome, numero: data.logradouro.numero }
             });
             if (logExistente) data.logradouro = { id: logExistente.id };
         }
 
-        // 4. Vincular a Empresa ao payload
-        // Aqui injetamos a empresa encontrada para que o TypeORM crie a relação
+        // 4. Criar o Funcionário vinculado à Pessoa e à Empresa
         const newFuncionario = funcionarioRepository.create({
-            ...data,
-            empresa: empresa // O TypeORM fará a associação automática pelo ID
+            pessoa: pessoa, // Vincula a entidade Pessoa (ou pessoaId: pessoa.id)
+            empresa: empresa,
+            logradouro: data.logradouro,
+            // não espalhe ...data aqui para não tentar inserir 'nome' e 'cpf' que não existem mais em Funcionario
         });
 
         const funcionario = await funcionarioRepository.save(newFuncionario);
 
         return res.status(201).json({
-            message: "Funcionário cadastrado e vinculado à empresa com sucesso!",
-            funcionarioSave: funcionario
-        });
-    } catch (error: any) {
-        return res.status(500).json({ message: "Erro interno", error: error.message });
-    }
-});
-
-router.post("/funcionario", async (req: Request, res: Response) => {
-    try {
-        const data = req.body;
-        const funcionarioRepo = AppDataSource.getRepository(Funcionario);
-
-        // 1. Validar CPF
-        if (!data.cpf) return res.status(400).json({ message: "CPF é obrigatório!" });
-        
-        const existingFunc = await funcionarioRepo.findOneBy({ cpf: data.cpf });
-        if (existingFunc) return res.status(400).json({ message: "CPF já cadastrado!" });
-
-        // 2. Normalização simples
-        // Se vier apenas o ID, o TypeORM já entende. 
-        // Se vier o objeto sem ID, precisamos garantir que o logradouro existe.
-        if (data.logradouro && !data.logradouro.id) {
-            const logradouroRepo = AppDataSource.getRepository(Logradouro);
-            const logExistente = await logradouroRepo.findOne({
-                where: {
-                    nome: data.logradouro.nome,
-                    numero: data.logradouro.numero
-                }
-            });
-            if (logExistente) data.logradouro = { id: logExistente.id };
-        }
-
-        // 3. Salvar
-        const newFuncionario = funcionarioRepo.create(data);
-        const salvo = await funcionarioRepo.save(newFuncionario);
-
-        return res.status(201).json({
             message: "Funcionário cadastrado com sucesso!",
-            funcionario: salvo
+            funcionario: funcionario
         });
     } catch (error: any) {
-        console.error("ERRO DETALHADO:", error);
         return res.status(500).json({ message: "Erro interno", error: error.message });
     }
 });
@@ -180,37 +167,48 @@ router.put("/funcionario/:id", async (req: Request, res: Response) => {
         const { id } = req.params;
         const data = req.body;
         const funcionarioId = parseInt(id);
+        
         const funcionarioRepository = AppDataSource.getRepository(Funcionario);
         const logradouroRepository = AppDataSource.getRepository(Logradouro);
+        const pessoaRepository = AppDataSource.getRepository(Pessoa);
 
-        // 1. Busca a funcionario original
-        const funcionario = await funcionarioRepository.findOneBy({ id: funcionarioId });
+        // 1. Busca o funcionário incluindo a relação com pessoa
+        const funcionario = await funcionarioRepository.findOne({
+            where: { id: funcionarioId },
+            relations: ["pessoa"] 
+        });
 
         if (!funcionario) {
             return res.status(404).json({ message: "Funcionário não encontrado!" });
         }
 
-        // 2. Validação de Duplicidade de CPF
+        // 2. Validação de Duplicidade de CPF na tabela Pessoa
         if (data.cpf) {
-            const existingFuncionario = await funcionarioRepository.findOne({
+            const existingPessoa = await pessoaRepository.findOne({
                 where: {
                     cpf: data.cpf,
-                    id: Not(funcionarioId),
+                    id: Not(funcionario.pessoa!.id), // Verifica se o CPF pertence a OUTRA pessoa
                 }
             });
 
-            if (existingFuncionario) {
-                return res.status(400).json({ message: "Já existe outro funcionário cadastrado com este CPF!" });
+            if (existingPessoa) {
+                return res.status(400).json({ message: "Já existe outra pessoa cadastrada com este CPF!" });
             }
+            // Atualiza o CPF no objeto pessoa
+            funcionario.pessoa!.cpf = data.cpf;
         }
 
-        // 3. Validação de Endereço Existente na Edição
+        // Atualiza o nome se enviado
+        if (data.nome) {
+            funcionario.pessoa!.nome = data.nome;
+        }
+
+        // 3. Validação de Endereço (Logradouro)
         if (data.logradouro && !data.logradouro.id) {
             const logradouroExistente = await logradouroRepository.findOne({
                 where: {
                     nome: data.logradouro.nome,
-                    numero: data.logradouro.numero,
-                    bairro: { nome: data.logradouro.bairro?.nome }
+                    numero: data.logradouro.numero
                 }
             });
 
@@ -219,10 +217,14 @@ router.put("/funcionario/:id", async (req: Request, res: Response) => {
             }
         }
 
-        // 4. O método merge serve para mesclar os novos dados que chegaram na requisição (data)
-        // dentro da entidade do banco que já foi buscada (funcionario).
-
-        funcionarioRepository.merge(funcionario, data);
+        // 4. Merge e Save
+        // Removemos nome e cpf de 'data' antes do merge para não dar erro, 
+        // pois eles não existem mais em Funcionario
+        const { nome, cpf, ...funcionarioData } = data;
+        
+        funcionarioRepository.merge(funcionario, funcionarioData);
+        
+        // O save salvará tanto o funcionário quanto as alterações em funcionario.pessoa (devido ao cascade)
         const updatedFuncionario = await funcionarioRepository.save(funcionario);
 
         return res.status(200).json({
@@ -230,9 +232,9 @@ router.put("/funcionario/:id", async (req: Request, res: Response) => {
             funcionario: updatedFuncionario,
         });
 
-    } catch (error) {
+    } catch (error: any) {
         console.error(error);
-        return res.status(500).json({ message: "Erro ao editar a funcionário!" });
+        return res.status(500).json({ message: "Erro ao editar funcionário", error: error.message });
     }
 });
 
@@ -242,20 +244,23 @@ router.delete("/funcionario/:id", async (req: Request, res: Response) => {
         const { id } = req.params;
         const funcionarioRepository = AppDataSource.getRepository(Funcionario);
 
+        // Busca o funcionário (sem necessidade de carregar a pessoa aqui)
         const funcionario = await funcionarioRepository.findOneBy({ id: parseInt(id) });
 
         if (!funcionario) {
             return res.status(404).json({ message: "Funcionário não encontrado!" });
         }
 
+        // Isso remove apenas a linha na tabela 'funcionario'
+        // A tabela 'pessoa' permanece intacta
         await funcionarioRepository.remove(funcionario);
 
-        res.status(200).json({
-            message: "Funcionário deletado com sucesso!",
+        return res.status(200).json({
+            message: "Funcionário removido com sucesso! Os dados básicos da pessoa foram preservados.",
             funcionarioDeleted: funcionario,
         });
-    } catch (error) {
-        return res.status(500).json({ message: "Erro ao deletar a funcionário!" });
+    } catch (error: any) {
+        return res.status(500).json({ message: "Erro ao deletar funcionário", error: error.message });
     }
 });
 
